@@ -4,31 +4,50 @@
   const reader = document.createElement('dialog');
   reader.className = 'ks-reader ks-marked';
   reader.setAttribute('aria-label', '看山陪读双页阅读器');
-  const chevron = d => `<svg aria-hidden="true" viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+  const icon = d => `<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="${d}"/></svg>`;
   reader.innerHTML = `
-    <header class="ks-tools"><span class="ks-brand">知乎</span><span class="ks-title"></span>
-      <button type="button" class="ks-exit">返回原文</button></header>
+    <header class="ks-tools">
+      <span class="ks-imprint"><img class="ks-brand" src="assets/zhihu-logo.png" alt="知乎"><span class="ks-product">看山陪读</span></span>
+      <span class="ks-title"></span>
+      <button type="button" class="ks-exit">${icon('m10 6-6 6 6 6M4 12h16')}返回原文</button>
+    </header>
     <div class="ks-stage">
-      <div class="ks-spread"></div>
-      <button class="ks-turn ks-prev" aria-label="往前翻页">${chevron('m15 5-7 7 7 7')}</button>
-      <button class="ks-turn ks-next" aria-label="往后翻页">${chevron('m9 5 7 7-7 7')}</button>
+      <div class="ks-volume">
+        <div class="ks-spread"></div>
+        <button type="button" class="ks-contents-toggle" aria-expanded="false" aria-controls="ks-contents" aria-label="章节目录" title="章节目录">
+          ${icon('M5 6h2m3 0h9M5 12h2m3 0h9M5 18h2m3 0h9')}<span class="ks-contents-label">目录</span>
+        </button>
+        <nav class="ks-contents" id="ks-contents" aria-labelledby="ks-contents-title" hidden>
+          <h2 class="ks-contents-title" id="ks-contents-title">章节目录</h2><ol class="ks-contents-list"></ol>
+        </nav>
+      </div>
+      <button class="ks-turn ks-prev" aria-label="往前翻页">${icon('m15 5-7 7 7 7')}</button>
+      <button class="ks-turn ks-next" aria-label="往后翻页">${icon('m9 5 7 7-7 7')}</button>
     </div>
-    <footer class="ks-footer"><span class="ks-counter" aria-live="polite"></span>
-      <button class="ks-mark" aria-label="重点" aria-pressed="true" title="标出与文章主题相关的原句或短语">重点</button>
-      <button class="ks-follow" aria-label="跟读" aria-pressed="false" title="点选当前句，用上下键逐句移动">跟读</button>
-      <span class="ks-sentence-nav" role="group" aria-label="逐句移动" hidden>
-        <button class="ks-sentence-prev" aria-label="上一句" aria-keyshortcuts="ArrowUp" title="上一句（↑）">↑</button>
-        <button class="ks-sentence-next" aria-label="下一句" aria-keyshortcuts="ArrowDown" title="下一句（↓）">↓</button>
-      </span>
+    <footer class="ks-footer">
+      <div class="ks-progress"><span class="ks-counter" aria-live="polite"></span>
+        <span class="ks-progress-track" aria-hidden="true"><span class="ks-progress-fill"></span></span>
+      </div>
+      <div class="ks-modes" role="group" aria-label="阅读标记">
+        <button class="ks-mark" aria-label="重点" aria-pressed="true" title="标出与文章主题相关的原句或短语">${icon('m5 15 9-10 5 5-9 10-5-5Zm0 0-2 6 7-1M11 8l5 5')}重点</button>
+        <button class="ks-follow" aria-label="跟读" aria-pressed="false" title="点选当前句，用上下键逐句移动">${icon('M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M7 12h10')}跟读</button>
+        <span class="ks-sentence-nav" role="group" aria-label="逐句移动" hidden>
+          <button class="ks-sentence-prev" aria-label="上一句" aria-keyshortcuts="ArrowUp" title="上一句（↑）">↑</button>
+          <button class="ks-sentence-next" aria-label="下一句" aria-keyshortcuts="ArrowDown" title="下一句（↓）">↓</button>
+        </span>
+      </div>
       <div class="ks-font" role="group" aria-label="阅读字号"><span>字号</span>
-        <button class="ks-smaller" aria-label="减小字号" aria-keyshortcuts="-" title="减小字号（−）">减小</button>
+        <button class="ks-smaller" aria-label="减小字号" aria-keyshortcuts="-" title="减小字号（−）">−</button>
         <output aria-label="当前字号"></output>
-        <button class="ks-larger" aria-label="增大字号" aria-keyshortcuts="+" title="增大字号（+）">增大</button></div>
+        <button class="ks-larger" aria-label="增大字号" aria-keyshortcuts="+" title="增大字号（+）">+</button></div>
     </footer>
     <div class="ks-body ks-probe" aria-hidden="true"></div>`;
   document.body.append(reader);
   const get = selector => reader.querySelector(selector);
   const spread = get('.ks-spread');
+  const contents = get('.ks-contents');
+  const contentsToggle = get('.ks-contents-toggle');
+  const contentsList = get('.ks-contents-list');
   for (let i = 0; i < 2; i++) {
     const leaf = document.createElement('section');
     leaf.className = 'ks-leaf';
@@ -47,6 +66,7 @@
   let anchor = { block: 0, offset: 0 };
   let previousOverflow, previousFocus;
   let sentences = [], currentSentence = -1, following = false;
+  let chapters = [];
   let lastExit = null, sourceMoved = false, sourceY = window.scrollY;
   const segmenter = typeof Intl.Segmenter === 'function'
     ? new Intl.Segmenter('zh', {granularity:'sentence'}) : null;
@@ -272,6 +292,51 @@
       && position.offset >= p.start && (position.offset < p.end || p.end === blocks[p.block].length)));
     return index < 0 ? 0 : index;
   }
+  function chapterAt(block) {
+    return chapters.findLast(chapter => chapter.block <= block);
+  }
+  function updateChapterSelection() {
+    const active = chapterAt(anchor.block);
+    for (const chapter of chapters) {
+      if (chapter === active) chapter.button.setAttribute('aria-current', 'location');
+      else chapter.button.removeAttribute('aria-current');
+    }
+  }
+  function setContents(open, restoreFocus = true) {
+    contents.hidden = !open;
+    contentsToggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      updateChapterSelection();
+      const current = contentsList.querySelector('[aria-current]') || contentsList.querySelector('button');
+      current?.focus();
+    } else if (restoreFocus) contentsToggle.focus({preventScroll:true});
+  }
+  function buildContents() {
+    chapters = [];
+    contentsList.replaceChildren();
+    blocks.forEach(({node, text}, block) => {
+      if (!node.matches('h1,h2,h3,h4,h5,h6') || !text.trim()) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.ksChapter = String(block);
+      button.textContent = text.trim();
+      button.addEventListener('click', () => {
+        const previous = first;
+        anchor = {block, offset:0};
+        if (following) chooseVisibleSentence();
+        const destination = Math.floor(pageContaining(anchor) / step()) * step();
+        paint(Math.sign(destination - previous));
+        rememberPin();
+        setContents(false);
+      });
+      const item = document.createElement('li');
+      item.append(button);
+      contentsList.append(item);
+      chapters.push({block, title:button.textContent, button});
+    });
+    contentsToggle.hidden = !chapters.length;
+    setContents(false, false);
+  }
   function paint(direction = 0) {
     first = Math.floor(pageContaining(anchor)/step()) * step();
     for (let side=0; side<2; side++) {
@@ -280,10 +345,16 @@
       const pieces = pages[number] || [];
       body.replaceChildren(...pieces.map(piece => makeFragment(piece,true)));
       body.scrollTop = 0;
-      leaves[side].querySelector('.ks-folio').textContent = pieces.length ? '—　'+(number+1)+'　—' : '';
+      leaves[side].querySelector('.ks-folio').textContent = pieces.length ? String(number+1).padStart(2,'0') : '';
+      if (side === 1) {
+        const chapter = pieces.length && (chapterAt(pieces[0].block) || chapterAt(pieces[pieces.length-1].block));
+        leaves[side].querySelector('.ks-running').textContent = pieces.length ? chapter?.title || get('.ks-title').textContent : '';
+      }
     }
     const end = Math.min(first + step(),pages.length);
     get('.ks-counter').textContent = '第 '+(first+1)+(end>first+1?'–'+end:'')+' / '+pages.length+' 页';
+    get('.ks-progress-fill').style.width = (100 * end / pages.length) + '%';
+    updateChapterSelection();
     get('.ks-prev').disabled = first === 0;
     get('.ks-next').disabled = end >= pages.length;
     renderFollow();
@@ -400,6 +471,7 @@
           && !node.matches('.formula,.katex-display') && !node.querySelector(protectedContent+',h1,h2,h3,h4')};
     });
     if (!blocks.length) return;
+    buildContents();
     sentences=indexSentences();
     anchor=resumePin() || currentSourceAnchor();
     currentSentence=sentenceAt(anchor);
@@ -408,7 +480,6 @@
     const title=document.querySelector('h1')?.textContent?.trim() || '知乎回答';
     const byline=document.querySelector('[data-reader-author]');
     leaves[0].querySelector('.ks-running').textContent=byline?.dataset.readerAuthor || byline?.textContent?.trim() || '知乎回答';
-    leaves[1].querySelector('.ks-running').textContent=title;
     get('.ks-title').textContent=title;
     previousFocus=document.activeElement;previousOverflow=document.documentElement.style.overflow;
     reader.showModal();document.documentElement.style.overflow='hidden';
@@ -420,6 +491,19 @@
     if (event.target.closest('#open-reader')) {event.preventDefault();openReader()}
   });
   get('.ks-exit').onclick=()=>reader.close();
+  contentsToggle.addEventListener('click', () => setContents(contents.hidden));
+  reader.addEventListener('pointerdown', event => {
+    if (!contents.hidden && !contents.contains(event.target) && !contentsToggle.contains(event.target)) setContents(false);
+  });
+  reader.addEventListener('focusin', event => {
+    if (!contents.hidden && !contents.contains(event.target) && event.target !== contentsToggle) setContents(false, false);
+  });
+  reader.addEventListener('cancel', event => {
+    if (!contents.hidden) {
+      event.preventDefault();
+      setContents(false);
+    }
+  });
   reader.addEventListener('close',()=>{
     cancelAnimationFrame(frame);frame=0;document.documentElement.style.overflow=previousOverflow;
     const position={...anchor};
@@ -454,6 +538,18 @@
   get('.ks-sentence-next').onclick=()=>moveSentence(1);
   reader.addEventListener('keydown',event=>{
     if (event.altKey||event.metaKey||event.ctrlKey) return;
+    if (!contents.hidden) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setContents(false);
+      } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        const current = chapters.findIndex(chapter => chapter.button === document.activeElement);
+        const next = Math.min(chapters.length-1, Math.max(0, current + (event.key === 'ArrowDown' ? 1 : -1)));
+        chapters[next]?.button.focus();
+      }
+      return;
+    }
     const larger = event.key==='+' || (event.key==='=' && event.shiftKey);
     if (larger || event.key==='-' || event.key==='−') {
       event.preventDefault();updateFont(fontSize+(larger?1:-1));return;

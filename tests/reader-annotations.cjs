@@ -276,3 +276,47 @@ test('a sentence divided by a page break advances directly to the next original 
     await context.close();
   }
 });
+
+test('the chapter ribbon navigates to the source heading and restores focus and position', async () => {
+  for (const [sample, width] of [['d-opsd', 1440], ['su-yang', 390], ['lu-xun', 1440], ['atr', 390]]) {
+    const context = await browser.newContext({ viewport: { width, height: 844 }, reducedMotion: 'reduce' });
+    try {
+      const page = await load(context, sample);
+      const headings = page.locator('#article-body > h2');
+      const expected = await headings.allTextContents();
+      await page.locator('#open-reader').click();
+      await page.locator('.ks-follow').click();
+      const ribbon = page.locator('.ks-contents-toggle');
+      const contents = page.locator('.ks-contents');
+      const chapters = contents.getByRole('button');
+      await ribbon.click();
+      assert.deepEqual(await chapters.allTextContents(), expected);
+
+      const target = chapters.last();
+      const block = await target.getAttribute('data-ks-chapter');
+      await target.click();
+      assert.ok(await contents.isHidden());
+      assert.equal(await activeSentence(page), expected.at(-1));
+      const heading = page.locator('.ks-leaf:visible [data-ks-block="' + block + '"]');
+      assert.ok(await heading.isVisible());
+
+      await ribbon.click();
+      assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-current')), 'location');
+      await page.keyboard.press('ArrowUp');
+      assert.equal(await page.evaluate(() => document.activeElement.textContent), expected.at(-2));
+      await page.keyboard.press('Escape');
+      assert.ok(await page.locator('.ks-reader').isVisible());
+      assert.ok(await contents.isHidden());
+      assert.ok(await ribbon.evaluate(button => button === document.activeElement));
+      await page.keyboard.press('Escape');
+      await page.locator('.ks-reader').waitFor({ state: 'hidden' });
+      await layoutSettled(page);
+      assert.ok(await headings.last().evaluate(h => {
+        const rect = h.getBoundingClientRect();
+        return rect.top >= 0 && rect.top < innerHeight;
+      }), sample + ' restores the chosen chapter on return');
+    } finally {
+      await context.close();
+    }
+  }
+});
