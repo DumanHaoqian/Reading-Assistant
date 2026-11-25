@@ -43,6 +43,7 @@
 .ks-reader .ks-folio { min-height:16px; text-align:center; font:14px/16px Georgia,serif; letter-spacing:.12em; color:#807c6f; }
 .ks-reader .ks-body {
   min-width:0; min-height:0; display:flow-root; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin;
+  scrollbar-gutter:stable;
   font:400 var(--ks-text-size)/1.78 "Noto Serif SC","Songti SC","STSong",SimSun,serif;
   color:var(--ks-ink); overflow-wrap:anywhere;
 }
@@ -66,7 +67,7 @@
 .ks-reader .ks-body a { color: #2766a4; }
 .ks-reader .ks-body mark { color:inherit; background:transparent; padding:0; }
 .ks-reader.ks-marked .ks-body mark { background:#dce9f7; border-radius:2px; }
-.ks-reader .ks-probe { position:fixed; top:0; left:-100000px; visibility:hidden; pointer-events:none; scrollbar-width:none; }
+.ks-reader .ks-probe { position:fixed; top:0; left:-100000px; visibility:hidden; pointer-events:none; }
 .ks-reader .ks-turn { position:absolute; top:50%; transform:translateY(-50%); width:clamp(30px,3.3vw,47px); height:clamp(30px,3.3vw,47px); display:grid; place-items:center; padding:0; border-radius:50%; box-shadow:0 3px 7px #34425312; }
 .ks-reader .ks-prev { left:1vw; }.ks-reader .ks-next { right:1vw; }
 .ks-reader .ks-turn svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }

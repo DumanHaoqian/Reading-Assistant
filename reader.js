@@ -31,6 +31,7 @@
     spread.append(leaf);
   }
   const leaves = [...spread.children];
+  const pageBody = leaves[0].querySelector('.ks-body');
   const probe = get('.ks-probe');
   const compact = matchMedia('(max-width:700px)');
   const step = () => compact.matches ? 1 : 2;
@@ -40,7 +41,7 @@
   let source, blocks = [], pages = [], first = 0, frame = 0, fontSize = defaultFontSize;
   let anchor = { block: 0, offset: 0 };
   let previousOverflow, previousFocus;
-  let measuredSize = '', markedInSource = false;
+  let markedInSource = false;
   const loadedMedia = new Set();
 
   // Character offsets refer to the original DOM, independent of layout, zoom and highlights.
@@ -168,11 +169,12 @@
   function paginate() {
     frame = 0;
     if (!reader.open || !blocks.length) return;
-    const body = leaves[0].querySelector('.ks-body');
-    const width = body.clientWidth, height = body.clientHeight;
-    if (width < 1 || height < 1) return;
-    measuredSize = [width,height,step()].join('/');
-    probe.style.width = width+'px'; probe.style.height = height+'px';
+    // Match the actual page box, including its scrollbar gutter and fractional CSS pixels.
+    const box = getComputedStyle(pageBody);
+    probe.style.width = box.width;
+    probe.style.height = box.height;
+    const height = probe.clientHeight;
+    if (!probe.clientWidth || !height) return;
     probe.replaceChildren();
     const result = [];
     let page = [];
@@ -183,7 +185,7 @@
     function fits(piece) {
       const el = makeFragment(piece,false);
       probe.append(el);
-      const fitsHere = probe.scrollHeight <= height+1;
+      const fitsHere = probe.scrollHeight <= height;
       el.remove();
       return fitsHere;
     }
@@ -331,10 +333,8 @@
     const url=event.target.currentSrc;
     if (url && !loadedMedia.has(url)) {loadedMedia.add(url);queueLayout()}
   },true);
-  new ResizeObserver(()=>{
-    const body=leaves[0].querySelector('.ks-body');
-    if ([body.clientWidth,body.clientHeight,step()].join('/')!==measuredSize) queueLayout();
-  }).observe(leaves[0].querySelector('.ks-body'));
+  // A long figure may scroll inside a page without changing the book's dimensions.
+  new ResizeObserver(queueLayout).observe(pageBody, {box:'border-box'});
   compact.addEventListener('change',queueLayout);
   window.addEventListener('storage', event => {
     if (event.key === fontPreference || event.key === null) updateFont(savedFontSize(), false);
