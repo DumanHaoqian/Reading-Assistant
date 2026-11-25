@@ -1,22 +1,6 @@
-/* Both companions use one transparent pose strip. The feet share a baseline in
-   every cell, so changing expression does not move the page or the controls. */
-.ks-pet-sprite {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  pointer-events: none;
-  transform-origin: 50% 88%;
-  background: url("assets/kanshan/poses.webp") 0% center / 600% 100% no-repeat;
-}
-[data-pose="blink"] .ks-pet-sprite { background-position-x: 20%; }
-[data-pose="wave"] .ks-pet-sprite { background-position-x: 40%; }
-[data-pose="read"] .ks-pet-sprite { background-position-x: 60%; }
-[data-pose="blow"] .ks-pet-sprite { background-position-x: 80%; }
-[data-pose="hop"] .ks-pet-sprite { background-position-x: 100%; }
-
 /* Moving the fox leaves the original site's other shortcuts in place. */
-.float-tools { --pet-side: 1.7rem; --pet-bottom: 1.6rem; --pet-size: 78px; }
-.float-tools:has(.ks-pet-sprite) { pointer-events: none; justify-items: end; }
+.float-tools { --pet-side: 1.7rem; --pet-bottom: 1.6rem; --pet-size: 96px; }
+.float-tools:has(.ks-pet-sprite) { z-index: 20; pointer-events: none; justify-items: end; }
 .float-tools:has(.ks-pet-sprite) > button { pointer-events: auto; }
 .float-tools:has(.ks-pet-sprite)::after { content: ""; width: var(--pet-size); height: calc(var(--pet-size) + 12px); }
 #open-reader:has(.ks-pet-sprite) {
@@ -34,13 +18,11 @@
   border-radius: 14px;
   box-shadow: none;
   background: transparent;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
-  transform: translateX(var(--ks-pet-drag-x, 0px));
+  cursor: grab;
+  -webkit-touch-callout: none;
 }
-html[data-ks-pet-dock="left"] #open-reader:has(.ks-pet-sprite) { left: var(--pet-side); right: auto; }
-#open-reader[data-dragging="true"] { cursor: grabbing; }
-#open-reader .ks-pet-sprite { filter: drop-shadow(0 2px 1px #344b6730); }
 #open-reader > .ks-pet-label {
   position: static;
   margin-top: -3px;
@@ -53,26 +35,32 @@ html[data-ks-pet-dock="left"] #open-reader:has(.ks-pet-sprite) { left: var(--pet
   font: 500 11px/1.3 "Segoe UI", "Microsoft YaHei", sans-serif;
 }
 #open-reader:has(.ks-pet-sprite):is(:hover, :focus-visible)::before {
-  content: "点击陪读 · 拖动换边";
+  content: "点击陪读 · 按住拖动";
   top: 50%;
   transform: translateY(-50%);
+  border: 1px solid #c5d4e5;
+  border-radius: 8px;
+  background: #f9fcff;
+  color: #365376;
+  box-shadow: 0 2px 8px #324d701a;
+  pointer-events: none;
 }
-html[data-ks-pet-dock="left"] #open-reader:has(.ks-pet-sprite)::before { right: auto; left: calc(100% + .4rem); }
-#open-reader[data-dragging="true"]::before { display: none; }
+#open-reader[data-side="left"]:has(.ks-pet-sprite)::before { right: auto; left: calc(100% + .4rem); }
+#open-reader[data-dragging]::before { display: none; }
 
 .ks-reader .ks-footer:has(.ks-pet) {
   position: relative;
-  z-index: 1;
-  padding-right: max(66px, calc(var(--side-space) - 14px), calc((100% - 1270px) / 2 - 14px));
+  z-index: 3;
+  padding-right: max(96px, calc(var(--side-space) - 14px), calc((100% - 1270px) / 2 - 14px));
 }
 .ks-pet {
   position: absolute;
   right: clamp(4px, 1vw, 18px);
-  bottom: 1px;
+  bottom: 0;
   display: flex;
   align-items: flex-end;
-  width: 56px;
-  height: 54px;
+  width: 76px;
+  height: 76px;
   color: #2b415c;
 }
 .ks-reader .ks-pet-button,
@@ -82,9 +70,14 @@ html[data-ks-pet-dock="left"] #open-reader:has(.ks-pet-sprite)::before { right: 
   padding: 0;
   border: 0;
   background: transparent;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  -webkit-touch-callout: none;
 }
-.ks-pet-button .ks-pet-sprite { width: min(100%, 55px); }
-.ks-reader .ks-pet-button[aria-expanded="true"] { background-color: #c8d9ee55; }
+.ks-reader .ks-pet-button { border-radius: 35%; }
+.ks-reader .ks-pet-button[aria-expanded="true"] { background-color: #dce8f16e; }
+#open-reader[data-dragging], .ks-pet[data-dragging] .ks-pet-button { cursor: grabbing; }
 .ks-pet-panel {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -156,32 +149,15 @@ html[data-ks-pet-dock="left"] #open-reader:has(.ks-pet-sprite)::before { right: 
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  [data-quiet="false"][data-action="wave"] .ks-pet-sprite {
-    animation: ks-pet-wave .65s ease-in-out, ks-pet-wave-frames .65s steps(1, end);
-  }
-  [data-quiet="false"][data-action="turn"] .ks-pet-sprite { animation: ks-pet-turn .42s ease-in-out; }
-  [data-quiet="false"][data-direction="left"] { --pet-tilt: -5deg; }
-  [data-quiet="false"][data-action="hop"] .ks-pet-sprite { animation: ks-pet-hop .62s ease-in-out; }
   .ks-pet[data-quiet="false"] .ks-pet-bubble:not([hidden]) { animation: ks-pet-inflate 1.1s ease-out both; }
   .ks-pet[data-quiet="false"] .ks-pet-pop:not([hidden]) { animation: ks-pet-pop .48s ease-out both; }
 }
-@keyframes ks-pet-wave {
-  0%, 100% { transform: rotate(0); }
-  30% { transform: rotate(-4deg); }
-  65% { transform: rotate(3deg); }
-}
-@keyframes ks-pet-wave-frames {
-  0%, 58%, 100% { background-position-x: 40%; }
-  40% { background-position-x: 0%; }
-}
-@keyframes ks-pet-turn { 50% { transform: translateY(-1px) rotate(var(--pet-tilt, 5deg)); } }
-@keyframes ks-pet-hop { 0%, 100% { transform: none; } 42% { transform: translateY(-6px) rotate(-4deg); } 80% { transform: translateY(0) scale(1.025,.975); } }
 @keyframes ks-pet-inflate { from { opacity: .75; transform: scale(.86); } to { opacity: 1; transform: none; } }
 @keyframes ks-pet-pop { from { opacity: .9; transform: scale(.65); } to { opacity: 0; transform: scale(1.55); } }
 
 @media (max-width: 700px) {
   .ks-reader .ks-footer:has(.ks-pet) {
-    grid-template-columns: auto auto 45px;
+    grid-template-columns: auto auto 54px;
     grid-template-rows: 24px auto;
     gap: 2px 7px;
     padding: 4px 7px max(6px, env(safe-area-inset-bottom));
@@ -189,19 +165,43 @@ html[data-ks-pet-dock="left"] #open-reader:has(.ks-pet-sprite)::before { right: 
   .ks-footer:has(.ks-pet) .ks-progress { grid-area: 1 / 1 / 2 / 3; justify-self: start; }
   .ks-footer:has(.ks-pet) .ks-modes { grid-area: 2 / 1; }
   .ks-footer:has(.ks-pet) .ks-font { grid-area: 2 / 2; }
-  .ks-pet { position: relative; inset: auto; grid-area: 1 / 3 / 3; align-self: stretch; width: 45px; height: auto; }
-  .ks-reader .ks-pet-button { height: 46px; align-self: end; }
+  .ks-pet { position: relative; inset: auto; grid-area: 1 / 3 / 3; align-self: end; width: 54px; height: 54px; }
   .ks-pet-bubble { top: 0; bottom: auto; right: calc(100% - 5px); min-height: 24px; border-radius: 12px 12px 3px 12px; }
   .ks-pet-pop { right: 95%; bottom: auto; top: 2px; }
-  .ks-footer:has(.ks-pet-bubble:not([hidden])) .ks-progress-track { visibility: hidden; }
+  .ks-footer:has(.ks-pet:not([data-positioned]) .ks-pet-bubble:not([hidden])) .ks-progress-track { visibility: hidden; }
 }
 @media (max-width: 600px) {
-  .float-tools { --pet-side: .68rem; --pet-bottom: 3.85rem; --pet-size: 57px; }
+  .float-tools { --pet-side: .68rem; --pet-bottom: 3.85rem; --pet-size: 72px; }
 }
 @media (max-width: 355px) {
-  .ks-reader .ks-footer:has(.ks-pet) { grid-template-columns: auto auto 39px; column-gap: 4px; }
-  .ks-pet { width: 39px; }
+  .ks-reader .ks-footer:has(.ks-pet) { grid-template-columns: auto auto 48px; column-gap: 4px; }
+  .ks-pet { width: 48px; height: 48px; }
 }
+
+#open-reader[data-positioned], .ks-pet[data-positioned] {
+  position: fixed;
+  inset: var(--ks-pet-y) auto auto var(--ks-pet-x);
+  grid-area: auto;
+  z-index: 2;
+}
+.ks-pet[data-positioned] .ks-pet-panel {
+  left: var(--ks-panel-left);
+  right: auto;
+  top: auto;
+  bottom: calc(100% + 8px);
+  max-height: var(--ks-panel-max-height);
+}
+.ks-pet[data-positioned] .ks-pet-bubble {
+  left: var(--ks-bubble-left);
+  right: auto;
+  top: auto;
+  bottom: calc(100% + 3px);
+}
+.ks-pet[data-positioned][data-half="top"] :is(.ks-pet-panel, .ks-pet-bubble) {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+.ks-pet[data-positioned][data-half="top"] .ks-pet-pop { top: 95%; bottom: auto; }
 @media (hover: none) {
   #open-reader:has(.ks-pet-sprite):hover:not(:focus-visible)::before { display: none; }
 }

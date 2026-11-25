@@ -14,8 +14,6 @@
   }
 
   source.innerHTML = '<span class="ks-pet-sprite" aria-hidden="true"></span><b class="ks-pet-label" aria-hidden="true">陪读</b>';
-  source.title = '刘看山 · 点一下进入陪读，横拖或用左右键换边';
-  source.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight');
 
   const pet = document.createElement('div');
   pet.className = 'ks-pet';
@@ -25,6 +23,7 @@
     <section class="ks-pet-panel" id="ks-pet-panel" aria-labelledby="ks-pet-heading" hidden>
       <h2 class="ks-pet-heading" id="ks-pet-heading">刘看山陪读</h2>
       <button type="button" class="ks-pet-resume">接着这句读</button>
+      <button type="button" class="ks-pet-nuzzle">摸摸头</button>
       <button type="button" class="ks-pet-reminders" aria-pressed="false" title="超过本页预计阅读时间两分钟时提醒一次">
         <span class="ks-pet-option-label">专注提醒</span><span class="ks-pet-option-value" aria-hidden="true"></span></button>
       <button type="button" class="ks-pet-quiet" aria-pressed="false">
@@ -157,6 +156,13 @@
     setPanel(false);
     showReminder();
   });
+  find('nuzzle').addEventListener('click', () => {
+    setPanel(false);
+    if (still()) {
+      pet.dataset.pose = 'nuzzle';
+      poseTimer = setTimeout(rest, 1150);
+    } else play('nuzzle', 1150);
+  });
   find('dismiss').addEventListener('click', () => {
     hideReminder();
     rest();
@@ -245,64 +251,45 @@
   source.addEventListener('pointerenter', greet);
   source.addEventListener('focus', greet);
 
-  function enableDocking() {
-    const root = document.documentElement;
-    root.dataset.ksPetDock = preference('dock') === 'left' ? 'left' : 'right';
-    let gesture = null, suppressClickUntil = 0;
-    function dock(side) {
-      root.dataset.ksPetDock = side;
-      save('dock', side);
-    }
-    function release() {
-      if (!gesture) return;
-      if (source.hasPointerCapture(gesture.id)) source.releasePointerCapture(gesture.id);
-      gesture = null;
-      delete source.dataset.dragging;
-      source.style.removeProperty('--ks-pet-drag-x');
-    }
-    source.addEventListener('keydown', event => {
-      if (event.altKey || event.metaKey || event.ctrlKey || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-      event.preventDefault();
-      dock(event.key === 'ArrowLeft' ? 'left' : 'right');
-    });
-    source.addEventListener('pointerdown', event => {
-      if (!event.isPrimary || event.button !== 0) return;
-      suppressClickUntil = 0;
-      gesture = {id: event.pointerId, x: event.clientX, y: event.clientY, box: source.getBoundingClientRect()};
-    });
-    window.addEventListener('pointermove', event => {
-      if (gesture?.id !== event.pointerId) return;
-      const dx = event.clientX - gesture.x;
-      const dy = event.clientY - gesture.y;
-      if (!source.dataset.dragging) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
-        if (Math.abs(dy) >= Math.abs(dx)) { release(); return; }
-        source.setPointerCapture(event.pointerId);
-        source.dataset.dragging = 'true';
+  // A single pass across the face is ordinary pointing. Wait for two deliberate reversals.
+  for (const handle of [source, button]) {
+    let stroke = null, lastRub = -Infinity;
+    handle.addEventListener('pointerleave', () => { stroke = null; });
+    handle.addEventListener('pointermove', event => {
+      if (event.buttons || event.pointerType === 'touch' || still() || !panel.hidden || !bubble.hidden) {
+        stroke = null;
+        return;
       }
-      const limit = document.documentElement.clientWidth - gesture.box.right;
-      source.style.setProperty('--ks-pet-drag-x', Math.max(-gesture.box.left, Math.min(limit, dx)) + 'px');
-    }, {passive:true});
-    window.addEventListener('pointerup', event => {
-      if (gesture?.id !== event.pointerId) return;
-      if (source.dataset.dragging) {
-        const center = gesture.box.left + gesture.box.width / 2 + event.clientX - gesture.x;
-        dock(center < document.documentElement.clientWidth / 2 ? 'left' : 'right');
-        suppressClickUntil = performance.now() + 700;
+      const time = performance.now();
+      if (time - lastRub < 2500) return;
+      const face = handle.querySelector('.ks-pet-sprite').getBoundingClientRect();
+      const x = (event.clientX - face.left) / face.width;
+      const y = (event.clientY - face.top) / face.height;
+      if (x < .14 || x > .8 || y < .07 || y > .54) { stroke = null; return; }
+      if (!stroke || time - stroke.time > 700) stroke = { edge: x, direction: 0, turns: 0 };
+      stroke.time = time;
+      const delta = x - stroke.edge;
+      if (stroke.direction && Math.sign(delta) === stroke.direction) stroke.edge = x;
+      else if (Math.abs(delta) >= .13) {
+        if (stroke.direction) stroke.turns++;
+        stroke.direction = Math.sign(delta);
+        stroke.edge = x;
+        if (stroke.turns === 2) {
+          lastRub = time;
+          stroke = null;
+          play('nuzzle', 1150);
+        }
       }
-      release();
-    });
-    window.addEventListener('pointercancel', event => { if (gesture?.id === event.pointerId) release(); });
-    window.addEventListener('blur', release);
-    document.addEventListener('click', event => {
-      if (source.contains(event.target) && event.detail > 0 && performance.now() < suppressClickUntil) {
-        suppressClickUntil = 0;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-    }, true);
+    }, { passive: true });
   }
-  enableDocking();
+
+  const updateGaze = window.KanshanCharacter.attach({ source, pet });
+  window.KanshanPosition.attach({
+    source, pet, button, onMove: updateGaze,
+    onDragStart(host) {
+      if (host === pet && !panel.hidden) setPanel(false, false);
+    },
+  });
   renderPreferences();
   rest();
 })();

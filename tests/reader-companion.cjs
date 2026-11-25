@@ -62,6 +62,12 @@ test('pet settings, preview and an actual page turn work without disrupting book
     assert.ok(await pet.evaluate(el => document.activeElement === el));
 
     await pet.click();
+    await settings.getByRole('button', {name: '摸摸头'}).click();
+    assert.ok(await settings.isHidden());
+    assert.equal(await page.locator('.ks-pet').getAttribute('data-pose'), 'nuzzle');
+    await page.waitForFunction(() => document.querySelector('.ks-pet').dataset.pose === 'idle');
+
+    await pet.click();
     await settings.locator('.ks-pet-resume').click();
     assert.equal(await page.locator('.ks-follow').getAttribute('aria-pressed'), 'true');
     assert.ok(await settings.isHidden());
@@ -90,27 +96,157 @@ test('pet settings, preview and an actual page turn work without disrupting book
   } finally { await context.close(); }
 });
 
-test('dragging the pet docks it without opening the book, keyboard still works', async () => {
+async function center(locator) {
+  const box = await locator.boundingBox();
+  assert.ok(box, 'the pet is visible');
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+async function dragPet(page, locator, x, y) {
+  const start = await center(locator);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(x, y, { steps: 8 });
+  await page.mouse.up();
+}
+
+function expectNear(actual, expected, tolerance = 3) {
+  for (const axis of ['x', 'y']) {
+    assert.ok(Math.abs(actual[axis] - expected[axis]) <= tolerance,
+      `${axis}: expected ${actual[axis]} to be within ${tolerance} of ${expected[axis]}`);
+  }
+}
+
+async function expectInsideViewport(page, locator) {
+  await locator.waitFor({ state: 'visible', timeout: 2500 });
+  const box = await locator.boundingBox();
+  const { width, height } = page.viewportSize();
+  assert.ok(box && box.x >= -1 && box.y >= -1 &&
+    box.x + box.width <= width + 1 && box.y + box.height <= height + 1,
+    `cropped control in ${width}×${height}: ${JSON.stringify(box)}`);
+}
+
+test('both pets move across the viewport, retain separate positions and accept keyboard moves', async () => {
   const context = await browser.newContext({ viewport: { width: 1030, height: 740 } });
   try {
     const page = await context.newPage();
     await page.goto(entry.href);
-    const sourcePet = page.locator('#open-reader');
-    const rect = await sourcePet.boundingBox();
-    const y = rect.y + rect.height / 2;
-    await page.mouse.move(rect.x + rect.width / 2, y);
-    await page.mouse.down();
-    await page.mouse.move(50, y, { steps: 12 });
-    await page.mouse.up();
+    const sourcePet = page.locator('#open-reader'), bookPet = page.locator('.ks-pet-button');
+    await dragPet(page, sourcePet, 380, 240);
+    expectNear(await center(sourcePet), {x: 380, y: 240});
     assert.ok(await page.locator('.ks-reader').isHidden());
-    assert.equal(await page.locator('html').getAttribute('data-ks-pet-dock'), 'left');
-    await page.reload();
-    assert.equal(await page.locator('html').getAttribute('data-ks-pet-dock'), 'left');
     await sourcePet.focus();
-    await page.keyboard.press('ArrowRight');
-    assert.equal(await page.locator('html').getAttribute('data-ks-pet-dock'), 'right');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowLeft');
+    const sourcePosition = await center(sourcePet);
+    assert.ok(sourcePosition.x < 378 && sourcePosition.y < 238);
     await page.keyboard.press('Enter');
-    await page.locator('.ks-reader[open]').waitFor();
+    await bookPet.waitFor();
+    await dragPet(page, bookPet, 700, 420);
+    expectNear(await center(bookPet), {x: 700, y: 420});
+    assert.ok(await page.locator('.ks-pet-panel').isHidden(), 'drag must not toggle settings');
+    const counter = await page.locator('.ks-counter').textContent();
+    await bookPet.focus();
+    await page.keyboard.press('Alt+ArrowRight');
+    await page.keyboard.press('Alt+ArrowDown');
+    const bookPosition = await center(bookPet);
+    assert.ok(bookPosition.x > 702 && bookPosition.y > 422);
+    assert.equal(await page.locator('.ks-counter').textContent(), counter);
+    await page.locator('.ks-exit').click();
+    await page.reload();
+    expectNear(await center(sourcePet), sourcePosition);
+    await sourcePet.click();
+    expectNear(await center(bookPet), bookPosition);
+    await page.setViewportSize({width: 750, height: 570});
+    await page.waitForFunction(() => document.querySelector('.ks-pet-button').getBoundingClientRect().x < 570);
+    expectNear(await center(bookPet), {x: bookPosition.x * 750 / 1030, y: bookPosition.y * 570 / 740}, 16);
+    for (const [x, y] of [[1, 1], [749, 1], [749, 569], [1, 569]]) {
+      await dragPet(page, bookPet, x, y);
+      expectNear(await center(bookPet), {x, y}, 62);
+      await expectInsideViewport(page, bookPet);
+      await bookPet.click();
+      await expectInsideViewport(page, page.locator('.ks-pet-panel'));
+      await page.locator('.ks-pet-preview').click();
+      await expectInsideViewport(page, page.locator('.ks-pet-bubble'));
+      await page.locator('.ks-pet-dismiss').click();
+    }
+  } finally { await context.close(); }
+});
+
+test('both eyes track the pointer on each surface and retain their direction when it stops', async () => {
+  const context = await browser.newContext({viewport: {width: 1120, height: 800}});
+  try {
+    const page = await context.newPage();
+    await page.goto(entry.href);
+    // Measure the visible pupil inside each eye; moving or tilting the entire
+    // character would leave these offsets unchanged.
+    function eyesLookToward({host, signX, signY}) {
+      const eyes = Array.from(document.querySelectorAll(host + ' .ks-fox-eye'));
+      return eyes.length === 2 && eyes.every(eye => {
+        const sclera = eye.querySelector('.ks-fox-sclera').getBoundingClientRect();
+        const pupil = eye.querySelector('.ks-fox-pupil ellipse').getBoundingClientRect();
+        if (!sclera.width || !sclera.height || !pupil.width || !pupil.height) return false;
+        const x = (pupil.left + pupil.width / 2 - sclera.left) / sclera.width - .5;
+        const y = (pupil.top + pupil.height / 2 - sclera.top) / sclera.height - .5;
+        return Math.abs(x) < .5 && Math.abs(y) < .5 &&
+          (!signX || x * signX > .035) && (!signY || y * signY > .035);
+      });
+    }
+    for (const [host, button, x, y] of [
+      ['#open-reader', '#open-reader', 630, 490],
+      ['.ks-pet', '.ks-pet-button', 330, 230],
+    ]) {
+      const handle = page.locator(button);
+      await dragPet(page, handle, x, y);
+      for (const [signX, signY] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        await page.mouse.move(x + 220 * signX, y + 170 * signY);
+        await page.waitForFunction(eyesLookToward, {host, signX, signY}, {timeout: 2000});
+      }
+      // Wait beyond the landing/greeting animations without moving the pointer.
+      await page.waitForTimeout(850);
+      assert.ok(await page.evaluate(eyesLookToward, {host, signX: 1, signY: 1}));
+      // The pointer stays still while the character moves past it via the keyboard.
+      const position = await center(handle);
+      await handle.focus();
+      await page.mouse.move(position.x + 50, position.y - 65);
+      await page.waitForFunction(eyesLookToward, {host, signX: 1, signY: -1}, {timeout: 2000});
+      const right = host === '#open-reader' ? 'Shift+ArrowRight' : 'Alt+Shift+ArrowRight';
+      for (let index = 0; index < 3; index++) await page.keyboard.press(right);
+      await page.waitForFunction(eyesLookToward, {host, signX: -1, signY: -1}, {timeout: 2000});
+      if (host === '#open-reader') await handle.click();
+    }
+  } finally { await context.close(); }
+});
+
+test('real touch drags move vertically without opening, scrolling or turning a page', async () => {
+  const context = await browser.newContext({viewport: {width: 390, height: 740}, isMobile: true, hasTouch: true});
+  try {
+    const page = await context.newPage();
+    const input = await context.newCDPSession(page);
+    async function stroke(locator, to, cancel = false) {
+      const start = await center(locator);
+      const send = (type, points) => input.send('Input.dispatchTouchEvent', {type, touchPoints: points});
+      await send('touchStart', [start]);
+      await send('touchMove', [{x: (start.x + to.x) / 2, y: (start.y + to.y) / 2}]);
+      await send('touchMove', [to]);
+      await send(cancel ? 'touchCancel' : 'touchEnd', []);
+    }
+    await page.goto(entry.href);
+    const sourcePet = page.locator('#open-reader'), bookPet = page.locator('.ks-pet-button');
+    await stroke(sourcePet, {x: 110, y: 265});
+    expectNear(await center(sourcePet), {x: 110, y: 265}, 5);
+    assert.equal(await page.evaluate(() => scrollY), 0);
+    assert.ok(await page.locator('.ks-reader').isHidden());
+    await stroke(sourcePet, {x: 230, y: 490}, true);
+    expectNear(await center(sourcePet), {x: 110, y: 265}, 5);
+    await sourcePet.tap();
+    const counter = await page.locator('.ks-counter').textContent();
+    await stroke(bookPet, {x: 90, y: 115});
+    expectNear(await center(bookPet), {x: 90, y: 115}, 5);
+    assert.equal(await page.locator('.ks-counter').textContent(), counter);
+    assert.ok(await page.locator('.ks-pet-panel').isHidden());
+    await bookPet.tap();
+    await expectInsideViewport(page, page.locator('.ks-pet-panel'));
   } finally { await context.close(); }
 });
 
