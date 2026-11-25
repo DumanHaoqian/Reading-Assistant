@@ -2,7 +2,7 @@
   --ks-ink: #242520;
   --ks-blue: #176ce6;
   --ks-paper: #fcfaf2;
-  --ks-text-size: 19px;
+  --ks-text-size: 16px;
   position: fixed;
   inset: 0;
   width: 100%;
@@ -74,8 +74,8 @@
 .ks-reader .ks-footer button { padding:4px 10px; }
 .ks-reader .ks-footer [aria-pressed="true"] { color:#1b62b3; background:#edf5ff; border-color:#cddff5; }
 .ks-reader .ks-counter { white-space:nowrap; font-variant-numeric:tabular-nums; }
-.ks-reader .ks-font { display:flex; gap:5px; align-items:center; }
-.ks-reader .ks-font output { min-width:33px; text-align:center; }
+.ks-reader .ks-font { display:flex; gap:6px; align-items:center; }
+.ks-reader .ks-font output { min-width:36px; text-align:center; font-variant-numeric:tabular-nums; }
 .ks-reader .ks-forward .ks-leaf:last-child { transform-origin:left center; animation:ks-forward .24s ease-out; }
 .ks-reader .ks-back .ks-leaf:first-child { transform-origin:right center; animation:ks-back .24s ease-out; }
 @keyframes ks-forward { from { transform:perspective(900px) rotateY(-7deg); filter:brightness(.95); } to {transform:none;filter:none} }
@@ -88,4 +88,5 @@
   .ks-reader .ks-footer{gap:8px;min-height:43px}.ks-reader .ks-footer button{padding:3px 7px}
   .ks-reader .ks-forward .ks-leaf:first-child { transform-origin:left center; animation:ks-forward .24s ease-out; }
 }
+@media(max-width:390px){.ks-reader .ks-footer{flex-wrap:wrap;gap:4px 7px;padding:5px 8px}.ks-reader .ks-font{gap:4px}}
 @media(prefers-reduced-motion:reduce){.ks-reader *, .ks-reader *::after {animation:none!important;scroll-behavior:auto!important}}

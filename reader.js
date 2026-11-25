@@ -15,8 +15,10 @@
     </div>
     <footer class="ks-footer"><span class="ks-counter" aria-live="polite"></span>
       <button class="ks-mark" aria-pressed="true">重点标记</button>
-      <div class="ks-font" aria-label="阅读字号"><button class="ks-smaller" aria-label="缩小字号">A−</button>
-        <output></output><button class="ks-larger" aria-label="增大字号">A+</button></div>
+      <div class="ks-font" role="group" aria-label="阅读字号"><span>字号</span>
+        <button class="ks-smaller" aria-label="减小字号" aria-keyshortcuts="-" title="减小字号（−）">减小</button>
+        <output aria-label="当前字号"></output>
+        <button class="ks-larger" aria-label="增大字号" aria-keyshortcuts="+" title="增大字号（+）">增大</button></div>
     </footer>
     <div class="ks-body ks-probe" aria-hidden="true"></div>`;
   document.body.append(reader);
@@ -33,7 +35,9 @@
   const compact = matchMedia('(max-width:700px)');
   const step = () => compact.matches ? 1 : 2;
   const protectedContent = 'img,svg,math,video,iframe,canvas,table,pre,code,figure,.katex,mjx-container,[data-formula]';
-  let source, blocks = [], pages = [], first = 0, frame = 0, fontSize = 19;
+  const fontPreference = 'kanshan.reader.font-size';
+  const minFontSize = 12, maxFontSize = 28, defaultFontSize = 16;
+  let source, blocks = [], pages = [], first = 0, frame = 0, fontSize = defaultFontSize;
   let anchor = { block: 0, offset: 0 };
   let previousOverflow, previousFocus;
   let measuredSize = '', markedInSource = false;
@@ -201,6 +205,13 @@
           else hi=mid-1;
         }
         if (best>start && /[\uD800-\uDBFF]/.test(block.text[best-1])) best--;
+        // Keep an English word together when a bilingual paragraph crosses a page.
+        const wordChar = /[\p{Script=Latin}\d]/u;
+        if (best > start && wordChar.test(block.text.charAt(best))) {
+          let boundary = best;
+          while (boundary > start && wordChar.test(block.text.charAt(boundary - 1))) boundary--;
+          if (boundary > start || page.length) best = boundary;
+        }
         if (best===start) {
           if (page.length) {flush();continue}
           page.push(whole);flush();break;
@@ -214,10 +225,22 @@
     paint();
   }
   function queueLayout() {if (reader.open && !frame) frame=requestAnimationFrame(paginate)}
-  function updateFont(size) {
-    fontSize=Math.min(27,Math.max(15,size));reader.style.setProperty('--ks-text-size',fontSize+'px');
-    get('.ks-font output').textContent=String(fontSize);
-    get('.ks-smaller').disabled=fontSize===15;get('.ks-larger').disabled=fontSize===27;
+  function savedFontSize() {
+    try {
+      const value = Number(localStorage.getItem(fontPreference));
+      if (Number.isInteger(value) && value >= minFontSize && value <= maxFontSize) return value;
+    } catch { /* The reader also works when site storage is disabled. */ }
+    return defaultFontSize;
+  }
+  function updateFont(size, remember = true) {
+    fontSize = Math.min(maxFontSize, Math.max(minFontSize, size));
+    reader.style.setProperty('--ks-text-size',fontSize+'px');
+    get('.ks-font output').textContent = fontSize+' px';
+    get('.ks-smaller').disabled = fontSize===minFontSize;
+    get('.ks-larger').disabled = fontSize===maxFontSize;
+    if (remember) {
+      try {localStorage.setItem(fontPreference, String(fontSize))} catch { /* Keep the preference in memory. */ }
+    }
     queueLayout();
   }
   function turn(direction) {
@@ -271,13 +294,18 @@
     requestAnimationFrame(()=>{if (!reader.open) restoreSource(position)});
   });
   get('.ks-prev').onclick=()=>turn(-1);get('.ks-next').onclick=()=>turn(1);
-  get('.ks-smaller').onclick=()=>updateFont(fontSize-2);get('.ks-larger').onclick=()=>updateFont(fontSize+2);
+  get('.ks-smaller').onclick=()=>updateFont(fontSize-1);get('.ks-larger').onclick=()=>updateFont(fontSize+1);
   get('.ks-mark').onclick=()=>{
     const marked=reader.classList.toggle('ks-marked');
     get('.ks-mark').setAttribute('aria-pressed',String(marked));
   };
   reader.addEventListener('keydown',event=>{
-    if (event.altKey||event.metaKey||event.ctrlKey||event.shiftKey) return;
+    if (event.altKey||event.metaKey||event.ctrlKey) return;
+    const larger = event.key==='+' || (event.key==='=' && event.shiftKey);
+    if (larger || event.key==='-' || event.key==='−') {
+      event.preventDefault();updateFont(fontSize+(larger?1:-1));return;
+    }
+    if (event.shiftKey) return;
     if (['ArrowLeft','ArrowRight'].includes(event.key)) {event.preventDefault();turn(event.key==='ArrowRight'?1:-1)}
   });
   // Clicking a line on the right-hand page makes that exact line the return position.
@@ -308,5 +336,8 @@
     if ([body.clientWidth,body.clientHeight,step()].join('/')!==measuredSize) queueLayout();
   }).observe(leaves[0].querySelector('.ks-body'));
   compact.addEventListener('change',queueLayout);
-  updateFont(fontSize);
+  window.addEventListener('storage', event => {
+    if (event.key === fontPreference || event.key === null) updateFont(savedFontSize(), false);
+  });
+  updateFont(savedFontSize(), false);
 })();
