@@ -67,11 +67,21 @@
   let previousOverflow, previousFocus;
   let sentences = [], currentSentence = -1, following = false;
   let chapters = [];
+  let companionActive = false;
+  let visibleSpread = { signature: '', text: '' };
   let lastExit = null, sourceMoved = false, sourceY = window.scrollY;
   const segmenter = typeof Intl.Segmenter === 'function'
     ? new Intl.Segmenter('zh', {granularity:'sentence'}) : null;
   const followHighlight = 'ks-follow-sentence';
   const loadedMedia = new Set();
+
+  function notifyCompanion(type, extra = {}) {
+    if (companionActive) {
+      document.dispatchEvent(new CustomEvent('ks:reader', {
+        detail: { type, ...visibleSpread, following, ...extra },
+      }));
+    }
+  }
 
   // Character offsets refer to the original DOM, independent of layout, zoom and highlights.
   function textNodes(root) {
@@ -310,6 +320,7 @@
       const current = contentsList.querySelector('[aria-current]') || contentsList.querySelector('button');
       current?.focus();
     } else if (restoreFocus) contentsToggle.focus({preventScroll:true});
+    notifyCompanion('contents', { open });
   }
   function buildContents() {
     chapters = [];
@@ -352,6 +363,16 @@
       }
     }
     const end = Math.min(first + step(),pages.length);
+    // Original text offsets keep a page's clock stable across repeated layout passes.
+    const firstPiece = pages[first]?.[0];
+    const lastPiece = pages[end - 1]?.at(-1);
+    if (firstPiece && lastPiece) {
+      const signature = [firstPiece.block, firstPiece.start, lastPiece.block, lastPiece.end].join(':');
+      if (visibleSpread.signature !== signature) {
+        const text = leaves.slice(0, end - first).map(leaf => leaf.querySelector('.ks-body').innerText).join('\n');
+        visibleSpread = { signature, text };
+      }
+    }
     get('.ks-counter').textContent = '第 '+(first+1)+(end>first+1?'–'+end:'')+' / '+pages.length+' 页';
     get('.ks-progress-fill').style.width = (100 * end / pages.length) + '%';
     updateChapterSelection();
@@ -360,6 +381,7 @@
     renderFollow();
     spread.classList.remove('ks-forward','ks-back');
     if (direction) {void spread.offsetWidth; spread.classList.add(direction>0?'ks-forward':'ks-back')}
+    notifyCompanion(direction ? 'turn' : 'page', { direction });
   }
   function paginate() {
     frame = 0;
@@ -482,9 +504,12 @@
     leaves[0].querySelector('.ks-running').textContent=byline?.dataset.readerAuthor || byline?.textContent?.trim() || '知乎回答';
     get('.ks-title').textContent=title;
     previousFocus=document.activeElement;previousOverflow=document.documentElement.style.overflow;
+    visibleSpread = { signature: '', text: '' };
     reader.showModal();document.documentElement.style.overflow='hidden';
     paginate();
     if (following) {chooseVisibleSentence();renderFollow()}
+    companionActive = true;
+    notifyCompanion('open');
     document.fonts?.ready.then(queueLayout);
   }
   document.addEventListener('click',event=>{
@@ -505,6 +530,8 @@
     }
   });
   reader.addEventListener('close',()=>{
+    notifyCompanion('close');
+    companionActive = false;
     cancelAnimationFrame(frame);frame=0;document.documentElement.style.overflow=previousOverflow;
     const position={...anchor};
     lastExit={key:pinKey(),position,sourceY:scrollY};
@@ -533,6 +560,7 @@
     get('.ks-sentence-nav').hidden=!following;
     if (following) chooseVisibleSentence();
     renderFollow();rememberPin();
+    notifyCompanion('follow');
   };
   get('.ks-sentence-prev').onclick=()=>moveSentence(-1);
   get('.ks-sentence-next').onclick=()=>moveSentence(1);
