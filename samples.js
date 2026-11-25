@@ -17,7 +17,6 @@ const atrSample = {
   sections: [
     {
       heading: '0. 概述',
-      highlights: ['区域运输飞机', '合资企业'],
       paragraphs: [
         'ATR (French: Avions de transport régional; Italian: Aerei da Trasporto Regionale; or "Regional Transport Airplanes" in English) is a Franco-Italian aircraft manufacturer headquartered in Blagnac, France, a suburb of Toulouse.',
         '【参考译文】ATR（法语：Avions de Transport Régional，意大利语：Aerei da Trasporto Regionale，英文意为“区域运输飞机”）是一家法国-意大利飞机制造商，总部位于法国布拉尼亚克（Blagnac），这是图卢兹的一个郊区。',
@@ -37,7 +36,6 @@ const atrSample = {
     },
     {
       heading: '1. 制造 | Manufacturing',
-      highlights: ['机身和尾部组件', '总装'],
       paragraphs: [
         "Leonardo's manufacturing facilities in Pomigliano d'Arco, near Naples, Italy, produce the aircraft's fuselage and tail sections. Aircraft wings are assembled at Sogerma in Bordeaux in western France by Airbus France. Final assembly, flight-testing, certification and deliveries are the responsibility of ATR in Toulouse, France.",
         "【参考译文】莱昂纳多公司在意大利那不勒斯附近的波米利亚诺达尔科（Pomigliano d'Arco）的制造工厂负责生产飞机的机身和尾部组件。飞机的机翼则在法国西部波尔多的Sogerma由空中客车法国公司进行组装。最后的总装、飞行测试、认证以及交付工作则由位于法国图卢兹的ATR公司负责。",
@@ -45,7 +43,6 @@ const atrSample = {
     },
     {
       heading: '2. 历史 | History',
-      highlights: ['多国协作', '支线客机'],
       paragraphs: [
         'During the 1960s and 1970s, European aircraft manufacturers had, for the most part, undergone considerable corporate restructuring, including mergers and consolidations, as well as moved towards collaborative multi-national programmes, such as the newly launched Airbus A300. In line with this trend towards intra-European cooperation, French aerospace company Aérospatiale and Italian aviation conglomerate Aeritalia commenced discussions on the topic of working together to develop an all-new regional airliner. Prior to this, both companies had been independently conducting studies for their own aircraft concepts, the AS 35 design in the case of Aerospatiale and the AIT 230 for Aeritalia, to conform with demand within this sector of the market as early as 1978.',
         '【参考译文】在1960年代和1970年代期间，欧洲的飞机制造商经历了大规模的企业重组，包括合并和整合，同时也转向了多国协作项目，如新推出的空客A300。遵循欧洲内部合作的趋势，法国航空航天公司Aérospatiale和意大利航空业巨头Aeritalia开始就共同开发全新的支线客机进行讨论。在此之前，两家公司已经各自对它们自己的飞机概念进行了研究，Aerospatiale的研究对象是AS 35设计，而Aeritalia则在研究AIT 230，这两项研究最早可追溯至1978年，旨在满足市场对该领域的需求。',
@@ -53,7 +50,6 @@ const atrSample = {
     },
     {
       heading: '2.1 1980-1989年 | 1980s',
-      highlights: ['合作协议', '首次飞行', '同一生产线'],
       paragraphs: [
         'On 4 November 1981, a formal Cooperation Agreement was signed by Aeritalia chairman Renato Bonifacio and Aérospatiale chairman Jacques Mitterrand in Paris, France. This agreement signaled not only the merger of their efforts but of their separate concept designs together into a single complete aircraft design for the purpose of pursuing its development and manufacture as a collaborative joint venture. The consortium targeted a similar unit cost but a 950 lb (430 kg) fuel consumption over a 200 nmi (370 km) sector, nearly half the 1,750 lb (790 kg) required by its 40-50 seat competitors, the British Aerospace HS.748 and Fokker F.27, and planned a 58-seat ATR XX stretch.',
         '【参考译文】1981年11月4日，Aeritalia董事长Renato Bonifacio和Aérospatiale董事长Jacques Mitterrand在法国巴黎正式签署了合作协议。这份协议不仅标志着两家公司努力的合并，还将它们各自的飞机概念设计融合为一个完整的飞机设计，目的是通过合资企业的方式共同推进其研发和制造。该联盟的目标是在相同单位成本下，实现200海里（370公里）航程内950磅（430公斤）的燃油消耗，这几乎是其40-50座竞争对手——英国宇航HS.748和福克F.27所需1750磅（790公斤）燃料的一半，并计划推出一个载客量为58座的ATR XX加长版。',

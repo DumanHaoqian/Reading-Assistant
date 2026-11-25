@@ -65,15 +65,25 @@
 .ks-reader .ks-body table { display:block; border-collapse:collapse; white-space:normal; }
 .ks-reader .ks-body :is(td,th) { padding:.3em .45em; border:1px solid #c8c1b2; }
 .ks-reader .ks-body a { color: #2766a4; }
-.ks-reader .ks-body mark { color:inherit; background:transparent; padding:0; }
-.ks-reader.ks-marked .ks-body mark { background:#dce9f7; border-radius:2px; }
+#article-body mark[data-ks-key], .ks-reader .ks-body mark[data-ks-key] {
+  color:inherit; background:transparent; padding:0;
+}
+.ks-source-marked #article-body mark[data-ks-key], .ks-reader.ks-marked .ks-body mark[data-ks-key] {
+  background:#dce9f7; border-radius:2px;
+  text-decoration:underline; text-decoration-color:#91accc; text-underline-offset:.17em;
+}
+::highlight(ks-follow-sentence) { background-color:#f6e4aa; }
 .ks-reader .ks-probe { position:fixed; top:0; left:-100000px; visibility:hidden; pointer-events:none; }
 .ks-reader .ks-turn { position:absolute; top:50%; transform:translateY(-50%); width:clamp(30px,3.3vw,47px); height:clamp(30px,3.3vw,47px); display:grid; place-items:center; padding:0; border-radius:50%; box-shadow:0 3px 7px #34425312; }
 .ks-reader .ks-prev { left:1vw; }.ks-reader .ks-next { right:1vw; }
 .ks-reader .ks-turn svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-.ks-reader .ks-footer { justify-content:center; min-height:49px; padding:7px 14px; background:white; border-top:1px solid #e0e3e8; font-size:13px; color:#677482; }
+.ks-reader .ks-footer { justify-content:center; flex-wrap:wrap; min-height:49px; padding:7px 14px; background:white; border-top:1px solid #e0e3e8; font-size:13px; color:#677482; }
 .ks-reader .ks-footer button { padding:4px 10px; }
 .ks-reader .ks-footer [aria-pressed="true"] { color:#1b62b3; background:#edf5ff; border-color:#cddff5; }
+.ks-reader .ks-follow[aria-pressed="true"] { background:#fbf2d7; border-color:#deca92; color:#675019; }
+.ks-reader .ks-sentence-nav { display:inline-flex; gap:4px; align-items:center; }
+.ks-reader .ks-sentence-nav[hidden], .ks-reader:not(.ks-following) .ks-sentence-nav { display:none; }
+.ks-reader .ks-sentence-nav button { min-width:30px; }
 .ks-reader .ks-counter { white-space:nowrap; font-variant-numeric:tabular-nums; }
 .ks-reader .ks-font { display:flex; gap:6px; align-items:center; }
 .ks-reader .ks-font output { min-width:36px; text-align:center; font-variant-numeric:tabular-nums; }

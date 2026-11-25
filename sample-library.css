@@ -64,7 +64,6 @@ html:has(.sample-library[open]) { overflow: hidden; }
 .sample-view #article-body { padding: .4rem 0 0; color: #26303b; font-size: 1.05rem; line-height: 1.9; }
 .sample-view #article-body h2 { margin: 1.8rem 0 .7rem; font-size: 1.25rem; }
 .sample-view #article-body p { margin: 0 0 1.1rem; }
-.sample-view #article-body mark { background: transparent; color: inherit; }
 .sample-view #article-body .sample-table {
   width: 100%;
   margin: 1em 0;

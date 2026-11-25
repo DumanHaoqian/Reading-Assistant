@@ -14,7 +14,12 @@
       <button class="ks-turn ks-next" aria-label="往后翻页">${chevron('m9 5 7 7-7 7')}</button>
     </div>
     <footer class="ks-footer"><span class="ks-counter" aria-live="polite"></span>
-      <button class="ks-mark" aria-pressed="true">重点标记</button>
+      <button class="ks-mark" aria-label="重点" aria-pressed="true" title="标出与文章主题相关的原句或短语">重点</button>
+      <button class="ks-follow" aria-label="跟读" aria-pressed="false" title="点选当前句，用上下键逐句移动">跟读</button>
+      <span class="ks-sentence-nav" role="group" aria-label="逐句移动" hidden>
+        <button class="ks-sentence-prev" aria-label="上一句" aria-keyshortcuts="ArrowUp" title="上一句（↑）">↑</button>
+        <button class="ks-sentence-next" aria-label="下一句" aria-keyshortcuts="ArrowDown" title="下一句（↓）">↓</button>
+      </span>
       <div class="ks-font" role="group" aria-label="阅读字号"><span>字号</span>
         <button class="ks-smaller" aria-label="减小字号" aria-keyshortcuts="-" title="减小字号（−）">减小</button>
         <output aria-label="当前字号"></output>
@@ -41,7 +46,11 @@
   let source, blocks = [], pages = [], first = 0, frame = 0, fontSize = defaultFontSize;
   let anchor = { block: 0, offset: 0 };
   let previousOverflow, previousFocus;
-  let markedInSource = false;
+  let sentences = [], currentSentence = -1, following = false;
+  let lastExit = null, sourceMoved = false, sourceY = window.scrollY;
+  const segmenter = typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter('zh', {granularity:'sentence'}) : null;
+  const followHighlight = 'ks-follow-sentence';
   const loadedMedia = new Set();
 
   // Character offsets refer to the original DOM, independent of layout, zoom and highlights.
@@ -103,25 +112,134 @@
     }
     return {block:Math.max(0,blocks.length-1), offset:0};
   }
-  function localHighlights(element) {
-    if (markedInSource) return;
-    const pattern = /D-OPSD|OPSD|反向散度|反向 KL|自蒸馏|蒸馏|采样|分布|监督信号|不再|并非/gi;
-    let remaining = 2;
-    for (const node of textNodes(element)) {
-      if (!remaining) break;
-      if (node.parentElement.closest('code,pre,math,svg,figure,.katex,mjx-container,mark,script,style,.formula')) continue;
-      pattern.lastIndex = 0;
-      const fragment = document.createDocumentFragment();
-      let match, tail = 0;
-      while (remaining && (match = pattern.exec(node.data))) {
-        fragment.append(node.data.slice(tail,match.index));
-        const mark = document.createElement('mark'); mark.textContent = match[0];
-        fragment.append(mark);
-        tail = pattern.lastIndex;
-        remaining--;
+  function textRange(nodes,start,end) {
+    const range=document.createRange();
+    range.setStart(...textPoint(nodes,start));
+    range.setEnd(...textPoint(nodes,end));
+    return range;
+  }
+  function indexSentences() {
+    const result=[];
+    blocks.forEach((block,index)=>{
+      let offset=0, lastGroup=null, runStart=0, run='';
+      function finishRun() {
+        const segments=segmenter ? segmenter.segment(run) : Array.from(
+          run.matchAll(/[^。！？!?]+(?:[。！？!?]+[”’」』）)]*)?|[。！？!?]+/gu),
+          match=>({index:match.index,segment:match[0]}));
+        for (const part of segments) {
+          if (!part.segment.trim()) continue;
+          const start=runStart+part.index+(part.segment.length-part.segment.trimStart().length);
+          const end=runStart+part.index+part.segment.trimEnd().length;
+          result.push({block:index,start,end});
+        }
+        run='';lastGroup=null;
       }
-      if (tail) {fragment.append(node.data.slice(tail)); node.replaceWith(fragment)}
+      for (const node of block.nodes) {
+        const parent=node.parentElement;
+        const excluded=parent.closest('table,pre,svg,script,style,.equation,.formula,.katex-display');
+        const group=parent.closest('p,li,figcaption,h1,h2,h3,h4,h5,h6,blockquote') || block.node;
+        if (excluded || (parent.closest('figure') && !parent.closest('figcaption'))) {
+          if (run) finishRun();
+        } else {
+          if (group!==lastGroup) {if (run) finishRun();runStart=offset;lastGroup=group}
+          // Protect punctuation inside inline formulae and URLs while preserving UTF-16 offsets.
+          const literal=parent.closest('math,code,.katex,mjx-container') ||
+            (parent.closest('a') && /^https?:\/\//i.test(parent.closest('a').textContent.trim()));
+          run+=literal ? node.data.replace(/[^\s]/g,'x') : node.data;
+        }
+        offset+=node.length;
+      }
+      if (run) finishRun();
+    });
+    return result;
+  }
+  function sentenceAt(position) {
+    return sentences.findIndex(s=>s.block===position.block && s.start<=position.offset && position.offset<s.end);
+  }
+  function chooseVisibleSentence() {
+    currentSentence=sentenceAt(anchor);
+    if (currentSentence>=0) return;
+    const startPage=Math.floor(pageContaining(anchor)/step())*step();
+    for (const page of pages.slice(startPage,startPage+step())) for (const piece of page) {
+      if (piece.block<anchor.block) continue;
+      const from=piece.block===anchor.block ? Math.max(anchor.offset,piece.start) : piece.start;
+      if (from>=piece.end) continue;
+      const index=sentences.findIndex(s=>s.block===piece.block && s.start<piece.end && s.end>from);
+      if (index===-1) continue;
+      currentSentence=index;
+      anchor={block:piece.block,offset:Math.max(from,sentences[index].start)};
+      return;
     }
+  }
+  function adjacentSentence(direction) {
+    if (currentSentence>=0) return currentSentence+direction;
+    // A spread consisting entirely of tables or figures can sit between two sentences.
+    const next=sentences.findIndex(s=>s.block>anchor.block ||
+      (s.block===anchor.block && s.start>=anchor.offset));
+    return (next<0 ? sentences.length : next)+(direction<0 ? -1 : 0);
+  }
+  function renderFollow(showSource=false) {
+    if (!window.CSS?.highlights) return;
+    CSS.highlights.delete(followHighlight);
+    const sentence=sentences[currentSentence];
+    get('.ks-sentence-prev').disabled=!sentences[adjacentSentence(-1)];
+    get('.ks-sentence-next').disabled=!sentences[adjacentSentence(1)];
+    if (!following || !sentence) return;
+    let ranges=[];
+    if (showSource) {
+      ranges=[textRange(blocks[sentence.block].nodes,sentence.start,sentence.end)];
+    } else {
+      for (const leaf of leaves.slice(0,step())) {
+        const piece=leaf.querySelector('[data-ks-block="'+sentence.block+'"]');
+        if (!piece) continue;
+        const base=Number(piece.dataset.ksOffset), end=base+piece.textContent.length;
+        const a=Math.max(sentence.start,base), b=Math.min(sentence.end,end);
+        if (b<=a) continue;
+        const nodes=textNodes(piece);
+        ranges.push(textRange(nodes,a-base,b-base));
+        // An indivisible block (e.g. prose around math) can scroll inside a book page.
+        const body=leaf.querySelector('.ks-body');
+        if (body.scrollHeight>body.clientHeight && anchor.offset>=a && anchor.offset<b) {
+          const local=anchor.offset-base;
+          const line=textRange(nodes,local,local+1).getBoundingClientRect(), box=body.getBoundingClientRect();
+          if (line.top<box.top || line.bottom>box.bottom) body.scrollTop+=line.top-box.top-body.clientHeight*.25;
+        }
+      }
+    }
+    if (ranges.length) CSS.highlights.set(followHighlight,new Highlight(...ranges));
+  }
+  function pinKey() {
+    return 'kanshan.reader.sentence:'+location.pathname+':'+(new URLSearchParams(location.search).get('sample')||'d-opsd');
+  }
+  function rememberPin() {
+    const sentence=sentences[sentenceAt(anchor)],key=pinKey();
+    try {
+      if (sentence) {
+        const quote=blocks[sentence.block].text.slice(sentence.start,sentence.end);
+        localStorage.setItem(key,JSON.stringify({...anchor,quote,sourceY:scrollY}));
+      } else localStorage.removeItem(key);
+    } catch { /* The in-document return position also works without storage. */ }
+  }
+  function resumePin() {
+    const key=pinKey();
+    if (lastExit?.key===key) return Math.abs(scrollY-lastExit.sourceY)<=16 ? lastExit.position : null;
+    if (sourceMoved || location.hash) return null;
+    let pin;
+    try {pin=JSON.parse(localStorage.getItem(key))} catch {return null}
+    if (!pin || !Number.isInteger(pin.block) || !Number.isInteger(pin.offset)) return null;
+    const sentence=sentences[sentenceAt(pin)];
+    if (!sentence || blocks[sentence.block].text.slice(sentence.start,sentence.end)!==pin.quote) return null;
+    const unchanged=Math.abs(scrollY-pin.sourceY)<=16;
+    return unchanged || scrollY<1 ? {block:pin.block,offset:pin.offset} : null;
+  }
+  function moveSentence(direction) {
+    const index=adjacentSentence(direction),next=sentences[index];if (!following || !next) return;
+    currentSentence=index;
+    anchor={block:next.block,offset:next.start};
+    const page=pageContaining(anchor);
+    if (page<first || page>=first+step()) paint(direction);
+    else renderFollow();
+    rememberPin();
   }
   function makeFragment(piece, display) {
     const block = blocks[piece.block];
@@ -129,10 +247,16 @@
     if (piece.start === 0 && piece.end === block.length) clone = block.node.cloneNode(true);
     else {
       clone = block.node.cloneNode(false);
-      const range = document.createRange();
-      range.setStart(...textPoint(block.nodes,piece.start));
-      range.setEnd(...textPoint(block.nodes,piece.end));
-      clone.append(range.cloneContents());
+      const range=textRange(block.nodes,piece.start,piece.end);
+      let content=range.cloneContents();
+      // cloneContents omits its common ancestor, which can itself be a semantic mark or a link.
+      let common=range.commonAncestorContainer;
+      if (common.nodeType===Node.TEXT_NODE) common=common.parentElement;
+      while (common && common!==block.node) {
+        const shell=common.cloneNode(false);
+        shell.append(content);content=shell;common=common.parentElement;
+      }
+      clone.append(content);
     }
     clone.removeAttribute('id');
     clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
@@ -140,7 +264,6 @@
     if (display) {
       clone.dataset.ksBlock = piece.block;
       clone.dataset.ksOffset = piece.start;
-      localHighlights(clone);
     }
     return clone;
   }
@@ -163,6 +286,7 @@
     get('.ks-counter').textContent = '第 '+(first+1)+(end>first+1?'–'+end:'')+' / '+pages.length+' 页';
     get('.ks-prev').disabled = first === 0;
     get('.ks-next').disabled = end >= pages.length;
+    renderFollow();
     spread.classList.remove('ks-forward','ks-back');
     if (direction) {void spread.offsetWidth; spread.classList.add(direction>0?'ks-forward':'ks-back')}
   }
@@ -248,7 +372,10 @@
   function turn(direction) {
     const next=first+direction*step();
     if (!pages[next]) return;
-    anchor={block:pages[next][0].block,offset:pages[next][0].start};paint(direction);
+    anchor={block:pages[next][0].block,offset:pages[next][0].start};
+    if (following) chooseVisibleSentence();
+    paint(direction);
+    rememberPin();
   }
   function restoreSource(position) {
     const block=blocks[position.block];if (!block?.node.isConnected) return;
@@ -273,8 +400,11 @@
           && !node.matches('.formula,.katex-display') && !node.querySelector(protectedContent+',h1,h2,h3,h4')};
     });
     if (!blocks.length) return;
-    anchor=currentSourceAnchor();
-    markedInSource=!!source.querySelector('mark');
+    sentences=indexSentences();
+    anchor=resumePin() || currentSourceAnchor();
+    currentSentence=sentenceAt(anchor);
+    get('.ks-follow').disabled=!sentences.length || !window.CSS?.highlights || !window.Highlight;
+    document.documentElement.classList.toggle('ks-source-marked',reader.classList.contains('ks-marked'));
     const title=document.querySelector('h1')?.textContent?.trim() || '知乎回答';
     const byline=document.querySelector('[data-reader-author]');
     leaves[0].querySelector('.ks-running').textContent=byline?.dataset.readerAuthor || byline?.textContent?.trim() || '知乎回答';
@@ -283,6 +413,7 @@
     previousFocus=document.activeElement;previousOverflow=document.documentElement.style.overflow;
     reader.showModal();document.documentElement.style.overflow='hidden';
     paginate();
+    if (following) {chooseVisibleSentence();renderFollow()}
     document.fonts?.ready.then(queueLayout);
   }
   document.addEventListener('click',event=>{
@@ -292,15 +423,35 @@
   reader.addEventListener('close',()=>{
     cancelAnimationFrame(frame);frame=0;document.documentElement.style.overflow=previousOverflow;
     const position={...anchor};
+    lastExit={key:pinKey(),position,sourceY:scrollY};
     previousFocus?.focus({preventScroll:true});
-    requestAnimationFrame(()=>{if (!reader.open) restoreSource(position)});
+    renderFollow(true);
+    requestAnimationFrame(()=>{
+      if (reader.open) return;
+      restoreSource(position);
+      sourceY=scrollY;lastExit.sourceY=sourceY;sourceMoved=false;rememberPin();
+    });
   });
+  window.addEventListener('scroll',()=>{
+    if (!reader.open && Math.abs(scrollY-sourceY)>16) sourceMoved=true;
+  },{passive:true});
   get('.ks-prev').onclick=()=>turn(-1);get('.ks-next').onclick=()=>turn(1);
   get('.ks-smaller').onclick=()=>updateFont(fontSize-1);get('.ks-larger').onclick=()=>updateFont(fontSize+1);
   get('.ks-mark').onclick=()=>{
     const marked=reader.classList.toggle('ks-marked');
     get('.ks-mark').setAttribute('aria-pressed',String(marked));
+    document.documentElement.classList.toggle('ks-source-marked',marked);
   };
+  get('.ks-follow').onclick=()=>{
+    following=!following;
+    reader.classList.toggle('ks-following',following);
+    get('.ks-follow').setAttribute('aria-pressed',String(following));
+    get('.ks-sentence-nav').hidden=!following;
+    if (following) chooseVisibleSentence();
+    renderFollow();rememberPin();
+  };
+  get('.ks-sentence-prev').onclick=()=>moveSentence(-1);
+  get('.ks-sentence-next').onclick=()=>moveSentence(1);
   reader.addEventListener('keydown',event=>{
     if (event.altKey||event.metaKey||event.ctrlKey) return;
     const larger = event.key==='+' || (event.key==='=' && event.shiftKey);
@@ -308,13 +459,28 @@
       event.preventDefault();updateFont(fontSize+(larger?1:-1));return;
     }
     if (event.shiftKey) return;
+    if (following && (event.key==='ArrowUp' || event.key==='ArrowDown')) {
+      event.preventDefault();moveSentence(event.key==='ArrowUp'?-1:1);return;
+    }
     if (['ArrowLeft','ArrowRight'].includes(event.key)) {event.preventDefault();turn(event.key==='ArrowRight'?1:-1)}
   });
   // Clicking a line on the right-hand page makes that exact line the return position.
   spread.addEventListener('click',event=>{
+    if (event.target.closest('a,button,input,textarea,select')) return;
+    if (window.getSelection()?.toString()) return;
     const el=event.target.closest('[data-ks-block]');if (!el) return;
     const hit=caretAt(event.clientX,event.clientY);
-    anchor={block:Number(el.dataset.ksBlock),offset:Number(el.dataset.ksOffset)+(hit?offsetWithin(el,...hit):0)};
+    if (!hit || !el.contains(hit[0])) return;
+    const base=Number(el.dataset.ksOffset);
+    const offset=Math.min(Math.max(0,el.textContent.length-1),offsetWithin(el,...hit));
+    const point={block:Number(el.dataset.ksBlock),offset:base+offset};
+    if (following) {
+      const index=sentenceAt(point);
+      if (index<0 || event.target.closest('img,svg,math,mjx-container,.katex,canvas,video,iframe,table,pre')) return;
+      currentSentence=index;
+    }
+    anchor=point;
+    if (following) {renderFollow();rememberPin()}
   });
   let gesture;
   spread.addEventListener('touchstart',e=>{

@@ -10,6 +10,7 @@
   const samples = [original, ...(window.READING_SAMPLES || []).filter(Boolean)];
   const requestedId = new URLSearchParams(location.search).get('sample') || original.id;
   const selected = samples.find(sample => sample.id === requestedId);
+  const current = selected || original;
 
   function element(tag, text, className) {
     const item = document.createElement(tag);
@@ -23,29 +24,6 @@
     url.searchParams.set('sample', id);
     url.hash = '';
     return url.href;
-  }
-
-  function appendParagraph(article, text, highlights = []) {
-    const paragraph = element('p');
-    const parts = text.split(/\*\*([^*]+)\*\*/g);
-    const phrases = highlights.filter(Boolean).sort((a, b) => b.length - a.length);
-    // The copy stays as text nodes. Marks refer only to supplied phrases in this paragraph.
-    for (const [index, part] of parts.entries()) {
-      if (index % 2) { paragraph.append(element('mark', part)); continue; }
-      let offset = 0;
-      while (offset < part.length) {
-        let matchAt = -1;
-        let match = '';
-        for (const phrase of phrases) {
-          const at = part.indexOf(phrase, offset);
-          if (at >= 0 && (matchAt < 0 || at < matchAt)) { matchAt = at; match = phrase; }
-        }
-        if (matchAt < 0) { paragraph.append(part.slice(offset)); break; }
-        paragraph.append(part.slice(offset, matchAt), element('mark', match));
-        offset = matchAt + match.length;
-      }
-    }
-    article.append(paragraph);
   }
 
   function sourceLink(title, url) {
@@ -132,7 +110,7 @@
         link.href = '#' + heading.id;
         toc.append(link);
       }
-      for (const text of section.paragraphs || []) appendParagraph(article, text, section.highlights);
+      for (const text of section.paragraphs || []) article.append(element('p', text));
       if (section.table) appendTable(article, section.table, section.heading);
     });
     if (sample.attribution || sample.sourceLinks?.length) {
@@ -155,6 +133,41 @@
 
   if (selected && selected !== original) renderArticle(selected);
 
+  // Match against the full paragraph, so an edited article never inherits a stale excerpt.
+  // Wrap text within each original inline element to keep links and author formatting intact.
+  function markExcerpt(block, excerpt, key) {
+    const content = block.textContent;
+    const start = content.indexOf(excerpt);
+    if (start < 0 || content.indexOf(excerpt, start + 1) >= 0) return;
+    const end = start + excerpt.length;
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+    const ranges = [];
+    let offset = 0;
+    for (let node = walker.nextNode(); node && offset < end; node = walker.nextNode()) {
+      const next = offset + node.length;
+      if (next > start && offset < end && node.length) {
+        if (node.parentElement.closest('math, svg, code, pre, .transcription-gap, [data-formula]')) return;
+        const range = document.createRange();
+        range.setStart(node, Math.max(0, start - offset));
+        range.setEnd(node, Math.min(node.length, end - offset));
+        ranges.push(range);
+      }
+      offset = next;
+    }
+    for (const range of ranges) {
+      const mark = element('mark');
+      mark.dataset.ksKey = key;
+      range.surroundContents(mark);
+    }
+  }
+
+  const prose = document.getElementById('article-body').querySelectorAll(':scope > p, :scope > ul > li, :scope > ol > li');
+  const highlights = window.READING_HIGHLIGHTS?.[current.id];
+  prose.forEach((block, index) => {
+    const excerpt = highlights?.[block.textContent];
+    if (typeof excerpt === 'string' && excerpt) markExcerpt(block, excerpt, String(index));
+  });
+
   const library = element('dialog', null, 'sample-library');
   library.id = 'sample-library';
   library.setAttribute('aria-labelledby', 'library-title');
@@ -163,7 +176,6 @@
       <form method="dialog"><button aria-label="关闭样本列表" title="关闭" autofocus>×</button></form></div>
     <nav class="library-list" aria-label="阅读样本列表"></nav>`;
   const list = library.querySelector('.library-list');
-  const current = selected || original;
   for (const sample of samples) {
     const link = element('a', null, 'library-link');
     link.href = pageURL(sample.id);
