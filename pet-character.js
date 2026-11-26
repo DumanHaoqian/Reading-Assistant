@@ -3,7 +3,7 @@
 
   const art = window.KanshanOfficialArt;
   const directory = 'assets/kanshan/';
-  if (!art) {
+  if (!art || !window.KanshanBook) {
     window.KanshanCharacter = {
       attach({source, pet}) {
         for (const host of [source, pet]) {
@@ -39,27 +39,31 @@
     sprite.innerHTML = `<svg class="ks-fox" viewBox="0 0 ${size} ${size}" aria-hidden="true" focusable="false">
       <defs>
         <clipPath id="${id}-frame"><rect width="${size}" height="${size}"/></clipPath>
+        <clipPath id="${id}-upper"><rect width="${size}" height="114.5"/></clipPath>
+        <clipPath id="${id}-lower"><rect y="114" width="${size}" height="${size - 114}"/></clipPath>
         <image id="${id}-eyes" preserveAspectRatio="none"/>
         ${eyePattern(0)}${eyePattern(1)}
       </defs>
       <g class="ks-fox-motion"><g class="ks-fox-body">
-        <g clip-path="url(#${id}-frame)">
-          <image class="ks-fox-image" width="${size}" height="${size}" href="${window.KanshanAppearance.poster}" preserveAspectRatio="none"/>
-          <image class="ks-fox-garment" display="none" preserveAspectRatio="none"/>
-        </g>
-        ${eye(0)}${eye(1)}
-        <g class="ks-fox-book" stroke-linejoin="round" stroke-width="1.8">
-          <g transform="translate(98 134) scale(1.8 1.04) translate(-97 -134)">
-          <path d="M77 124Q86 122 96 127Q106 121 117 121L116 139Q106 139 97 145Q86 140 78 141Z" fill="#f5e8c9" stroke="#4b607c"/>
-          <path d="M76 126Q87 125 96 130Q107 124 118 124L117 141Q106 142 97 147Q88 142 77 143Z" fill="#496c9d" stroke="#384e69"/>
-          <path d="M96 130L97 146" stroke="#c3d3e4"/>
-          <path class="ks-fox-leaf" d="M96 127Q105 120 116 121L112 129Q103 130 96 135Z" fill="#fff3d7" stroke="#b5a894" stroke-width="1"/>
+        <g class="ks-fox-base" style="--ks-lower-clip:url(#${id}-lower);--ks-sleeves-mask:url(#${id}-book-sleeves)">
+          <g clip-path="url(#${id}-frame)">
+            <g class="ks-fox-anchor"><g id="${id}-art">
+              <image class="ks-fox-image" width="${size}" height="${size}" href="${window.KanshanAppearance.poster}" preserveAspectRatio="none"/>
+              <image class="ks-fox-garment" display="none" preserveAspectRatio="none"/>
+            </g></g>
           </g>
         </g>
+        <g class="ks-fox-head">
+          <use class="ks-fox-reading-upper" href="#${id}-art" clip-path="url(#${id}-upper)"/>
+          ${eye(0)}${eye(1)}
+        </g>
+        ${window.KanshanBook.markup(id)}
       </g></g></svg>`;
     const svg = sprite.firstElementChild;
     return {
-      host, svg, image: svg.querySelector('.ks-fox-image'), garment: svg.querySelector('.ks-fox-garment'),
+      host, svg, head: svg.querySelector('.ks-fox-head'), anchor: svg.querySelector('.ks-fox-anchor'),
+      book: window.KanshanBook.bind(svg),
+      image: svg.querySelector('.ks-fox-image'), garment: svg.querySelector('.ks-fox-garment'),
       eyesImage: svg.querySelector('#' + id + '-eyes'),
       eyes: Array.from(svg.querySelectorAll('.ks-fox-eye'), (socket, side) => ({
         socket, box: socket.querySelector('.ks-fox-sclera'), pupil: socket.querySelector('.ks-fox-pupil'),
@@ -74,6 +78,48 @@
     const ready = new Map();
     let face = faces[0], activeClip = 'idle', requested = '', previousAction, cursor;
     let began = performance.now(), pausedAt = null, timer, gazeFrame = 0, movingUntil = 0;
+    let turn, turnFrame, lastTurnSerial;
+
+    function holdingBook() {
+      return face.host.dataset.pose === 'read' && !face.host.hasAttribute('data-dragging') &&
+        (!face.svg.dataset.clip || face.svg.dataset.clip === 'idle');
+    }
+    function stopTurn() {
+      if (!turn) return;
+      cancelAnimationFrame(turnFrame);
+      turn.face.book.setTurn(0, 1);
+      turn.face.head.style.removeProperty('transform');
+      turn = null;
+      updateGaze();
+    }
+    function stepTurn(now) {
+      const progress = Math.max(0, Math.min(1, turn.start +
+        (now - turn.began) / window.KanshanBook.turnDuration * turn.velocity));
+      turn.progress = progress;
+      face.book.setTurn(progress, turn.side);
+      // Lower the chin toward the raised paper, keeping the paws and feet planted.
+      const bend = Math.sin(Math.PI * progress) ** 2;
+      const lean = -1.7 - 1.3 * turn.side * Math.sin(2 * Math.PI * progress);
+      face.head.style.transform = `skewX(${lean}deg) scaleY(${.96 - .036 * bend})`;
+      updateGaze();
+      if ((turn.velocity > 0 && progress === 1) || (turn.velocity < 0 && progress === 0)) stopTurn();
+      else turnFrame = requestAnimationFrame(stepTurn);
+    }
+    function startTurn(side) {
+      const now = performance.now();
+      if (turn) {
+        // A quick reversal lays the same sheet back down from its visible position.
+        // Repeated turns in the same direction share the gesture already in progress.
+        const velocity = side === turn.side ? 1 : -1;
+        if (velocity === turn.velocity) return;
+        turn.start = turn.progress;
+        turn.began = now;
+        turn.velocity = velocity;
+      } else {
+        turn = { face, side, velocity: 1, start: 0, progress: 0, began: now };
+        stepTurn(now);
+      }
+    }
 
     function dress(item) {
       const name = item.svg.dataset.clip;
@@ -97,7 +143,8 @@
       if (document.hidden) return;
       for (const { socket, pupil, bounds } of face.eyes) {
         if (!bounds) continue;
-        let x = 0, y = 0;
+        const reading = face.svg.hasAttribute('data-book-open');
+        let x = 0, y = reading ? 1.7 : 0;
         if (cursor) {
           const matrix = socket.getScreenCTM();
           if (!matrix || !matrix.a || !matrix.d) continue;
@@ -106,6 +153,11 @@
           const distance = Math.max(18, Math.hypot(dx, dy));
           x = 2.5 * dx / distance;
           y = 2 * dy / distance;
+        }
+        if (turn) {
+          const glance = Math.sin(Math.PI * turn.progress) ** 2;
+          x += (turn.side * Math.cos(Math.PI * turn.progress) * 1.9 - x) * glance;
+          y += (2 - y) * glance;
         }
         pupil.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
       }
@@ -130,13 +182,17 @@
           pattern.setAttribute('height', clip.eyeCell);
         }
         face.svg.dataset.clip = name;
+        face.svg.toggleAttribute('data-book-open', holdingBook());
         dress(face);
       } else if (Number(face.svg.dataset.frame) === index) return;
       face.svg.dataset.frame = index;
+      const cellX = (index % cols) * size, cellY = Math.floor(index / cols) * size;
       for (const layer of [face.image, face.garment]) {
-        layer.setAttribute('x', -(index % cols) * size);
-        layer.setAttribute('y', -Math.floor(index / cols) * size);
+        layer.setAttribute('x', -cellX);
+        layer.setAttribute('y', -cellY);
       }
+      // Use the fitted frame-zero grip below the book and the live idle frame above it.
+      face.anchor.setAttribute('transform', `translate(${cellX} ${cellY})`);
       face.eyes.forEach((eye, side) => {
         const bounds = side ? clip.farEyes?.[index] : clip.frames[index];
         eye.bounds = bounds;
@@ -194,6 +250,7 @@
     function synchronize() {
       const next = faces[reader.open ? 1 : 0];
       const changed = face !== next;
+      if (changed) stopTurn();
       face = next;
       if (changed) previousAction = undefined;
       const { quiet, action, dragging, pose } = face.host.dataset;
@@ -201,17 +258,24 @@
       const transition = state !== previousAction;
       const previous = previousAction;
       previousAction = state;
+      if (state !== 'turn' || quiet === 'true' || document.hidden) stopTurn();
       if (quiet === 'true') choose('idle');
       else if (state === 'carry' || state === 'nuzzle') choose('sway', transition);
       else if (state === 'wave') choose('wave', transition);
       else if (previous === 'carry' || state !== 'idle' || changed || !requested) choose('idle');
       // Keep short greeting/nuzzle triggers playing through the authored return pose.
       else paint();
+      face.svg.toggleAttribute('data-book-open', holdingBook());
+      const serial = face.host.dataset.turnSerial;
+      if (!document.hidden && quiet !== 'true' && state === 'turn' && serial !== lastTurnSerial) {
+        lastTurnSerial = serial;
+        startTurn(face.host.dataset.direction === 'left' ? -1 : 1);
+      }
       updateGaze();
     }
     for (const item of faces) {
       new MutationObserver(synchronize).observe(item.host, {
-        attributes: true, attributeFilter: ['data-action','data-pose','data-dragging','data-quiet'],
+        attributes: true, attributeFilter: ['data-action','data-pose','data-dragging','data-quiet','data-turn-serial'],
       });
       const moving = () => { movingUntil = performance.now() + 700; updateGaze(); };
       item.host.addEventListener('animationstart', moving);
@@ -230,6 +294,7 @@
     document.addEventListener('ks:reader', synchronize);
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
+        stopTurn();
         pausedAt = performance.now();
         clearTimeout(timer);
         cancelAnimationFrame(gazeFrame);

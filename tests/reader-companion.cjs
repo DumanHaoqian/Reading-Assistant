@@ -376,7 +376,7 @@ test('pet settings, preview and an actual page turn work without disrupting book
     await settings.getByRole('button', {name: '摸摸头'}).click();
     assert.ok(await settings.isHidden());
     assert.equal(await page.locator('.ks-pet').getAttribute('data-pose'), 'nuzzle');
-    await page.waitForFunction(() => document.querySelector('.ks-pet').dataset.pose === 'idle');
+    await page.locator('.ks-pet[data-pose="read"] .ks-fox[data-book-open]').waitFor();
 
     await pet.click();
     await settings.locator('.ks-pet-resume').click();
@@ -529,6 +529,29 @@ test('the visible eye in the official three-quarter pose tracks even a stationar
   } finally { await context.close(); }
 });
 
+test('a single touch on the large landscape pet opens only the reader', async () => {
+  const page = await browser.newPage({viewport: {width: 740, height: 390}, hasTouch: true});
+  try {
+    await page.addInitScript(() => {
+      localStorage.setItem('kanshan.pet.size', '300');
+      localStorage.setItem('kanshan.pet.mirrored', 'true');
+    });
+    const url = new URL(entry);
+    url.searchParams.set('sample', 'article-2082792378637758790');
+    await page.goto(url.href);
+    await page.locator('#open-reader').tap();
+    await page.locator('.ks-reader[open]').waitFor();
+    const panel = page.locator('.ks-pet-panel');
+    assert.ok(await panel.isHidden(), 'the touch that opened the book does not also open pet settings');
+    const counter = page.locator('.ks-counter');
+    const first = await counter.innerText();
+    await page.locator('.ks-next').tap();
+    assert.notEqual(await counter.innerText(), first);
+    await page.locator('.ks-pet-button').tap();
+    assert.ok(await panel.isVisible(), 'a new touch on the companion opens settings once');
+  } finally { await page.close(); }
+});
+
 test('real touch drags move vertically without opening, scrolling or turning a page', async () => {
   const context = await browser.newContext({viewport: {width: 390, height: 740}, isMobile: true, hasTouch: true});
   try {
@@ -570,6 +593,20 @@ test('small screens and reduced motion keep both the reminder and reading contro
     await page.waitForFunction(() => document.querySelector('.ks-pet-button .ks-fox').dataset.frame === '0');
     await page.waitForTimeout(180);
     assert.equal(await fox.getAttribute('data-frame'), '0', 'reduced motion holds the official resting pose');
+    const book = fox.locator('.ks-fox-book');
+    await book.waitFor();
+    // Track the moving sheet's actual geometry, including transient changes between clicks.
+    const sheet = book.locator('.ks-book-sheet');
+    await sheet.evaluate(path => {
+      window.bookMotionChanges = 0;
+      new MutationObserver(records => { window.bookMotionChanges += records.length; })
+        .observe(path, {attributes: true, attributeFilter: ['d', 'transform']});
+    });
+    await page.locator('.ks-next').click();
+    await page.locator('.ks-prev').click();
+    assert.ok(await book.isVisible(), 'the static reading pose still holds the open book');
+    assert.ok(await sheet.isHidden(), 'no sheet is suspended in the air');
+    assert.equal(await page.evaluate(() => window.bookMotionChanges), 0, 'reduced motion skips the curl');
     assert.equal(await fox.locator('.ks-fox-eye[visibility="visible"]').count(), 1,
       'the official three-quarter resting view has one visible eye');
     for (const width of [390, 320]) {

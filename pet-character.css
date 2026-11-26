@@ -15,16 +15,24 @@
 }
 .ks-fox-motion { transform-origin: 50% 89%; }
 .ks-fox-body { transform-origin: 49% 40%; }
-.ks-fox-book { display: none; transform-origin: 50% 72%; }
-.ks-fox-leaf { opacity: 0; transform-origin: 50% 67%; }
-[data-pose="read"]:not([data-dragging]) .ks-fox-book { display: inline; }
+.ks-fox-head { transform-origin: 0 114px; }
+.ks-fox-reading-upper, .ks-fox-book { display: none; }
+.ks-fox:not([data-book-open]) .ks-fox-anchor { transform: none; }
+.ks-fox[data-book-open] .ks-fox-base {
+  clip-path: var(--ks-lower-clip);
+  mask: var(--ks-sleeves-mask);
+}
+.ks-fox[data-book-open] .ks-fox-reading-upper,
+.ks-fox[data-book-open] .ks-fox-book { display: inline; }
+.ks-fox[data-book-open] .ks-fox-head { transform: skewX(-1.7deg) scaleY(.96); }
 
 @media (prefers-reduced-motion: no-preference) {
+  [data-quiet="false"] .ks-fox[data-book-open] .ks-fox-book {
+    animation: ks-take-up-book .24s cubic-bezier(.2,.75,.3,1) both;
+    transform-origin: 99px 145px;
+  }
   .ks-pet { --ks-turn-x: 8%; }
   .ks-pet[data-direction="left"] { --ks-turn-x: -8%; }
-  [data-quiet="false"][data-action="turn"] .ks-fox-motion { animation: ks-turn-toward-page .45s ease; }
-  [data-quiet="false"][data-action="turn"] .ks-fox-book { animation: ks-book-lift .45s ease; }
-  [data-quiet="false"][data-action="turn"] .ks-fox-leaf { animation: ks-leaf-turn .45s ease; }
   [data-quiet="false"][data-action="blow"] .ks-fox-body { animation: ks-soft-blow .85s ease-in-out; }
   [data-quiet="false"][data-action="hop"] .ks-fox-motion { animation: ks-happy-hop .64s ease-in-out; }
   [data-quiet="false"][data-dragging] .ks-fox-motion { transform: translateY(-2%); }
@@ -34,12 +42,9 @@
   }
   [data-quiet="false"][data-landing] .ks-fox-motion { animation: ks-set-down .42s ease-out; }
 }
-@keyframes ks-turn-toward-page { 45% { transform: translate(var(--ks-turn-x), -2%); } }
-@keyframes ks-book-lift { 48% { transform: translateY(-1.2%) rotate(-4deg); } }
-@keyframes ks-leaf-turn {
-  0%, 100% { opacity: 0; }
-  24% { opacity: 1; }
-  76% { opacity: 1; transform: scaleX(-.9) rotate(5deg); }
+@keyframes ks-take-up-book {
+  from { opacity: 0; transform: translateY(3px) rotate(1.8deg); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes ks-soft-blow { 44% { transform: translateX(.8%) rotate(3deg); } }
 @keyframes ks-happy-hop {

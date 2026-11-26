@@ -69,7 +69,7 @@
   let reminders = preference('reminders') === 'true';
   let quiet = preference('quiet') === 'true';
   const petAppearance = window.KanshanAppearance;
-  let reading = false, following = false, contentsOpen = false;
+  let reading = false, contentsOpen = false, turnSerial = 0;
   let signature = null, budget = 0, elapsed = 0, startedAt = null, notified = false;
   let clockTimer, poseTimer, blinkTimer;
   const still = () => quiet || reduceMotion.matches;
@@ -78,11 +78,11 @@
     clearTimeout(poseTimer);
     clearTimeout(blinkTimer);
     pop.hidden = true;
-    pet.dataset.pose = following ? 'read' : 'idle';
+    pet.dataset.pose = reading ? 'read' : 'idle';
     source.dataset.pose = 'idle';
     delete pet.dataset.action;
     delete source.dataset.action;
-    if (!document.hidden && !still() && !(reading && (following || !panel.hidden || !bubble.hidden))) {
+    if (!document.hidden && !still() && !reading) {
       blinkTimer = setTimeout(() => play('blink', 160), 14000);
     }
   }
@@ -93,6 +93,7 @@
     const target = reading ? pet : source;
     target.dataset.pose = pose;
     target.dataset.action = action;
+    if (action === 'turn') target.dataset.turnSerial = String(++turnSerial);
     if (pose === 'hop') pop.hidden = false;
     poseTimer = setTimeout(rest, duration);
   }
@@ -317,18 +318,16 @@
       case 'open':
         stopClock();
         reading = true;
-        following = detail.following;
         contentsOpen = false;
         elapsed = 0;
         notified = false;
         setPage(detail);
         syncClock();
-        play('wave', 700);
+        rest();
         break;
       case 'close':
         stopClock();
         reading = false;
-        following = false;
         hideReminder();
         setPanel(false, false);
         break;
@@ -339,19 +338,15 @@
         stopClock();
         elapsed = 0;
         notified = false;
-        following = detail.following;
         setPage(detail);
         pet.dataset.direction = detail.direction < 0 ? 'left' : 'right';
-        play(hadBubble ? 'hop' : 'read', hadBubble ? 680 : 450, hadBubble ? 'hop' : 'turn');
+        if (hadBubble) play('hop', 680);
+        else play('read', window.KanshanBook?.turnDuration ?? 980, 'turn');
         syncClock();
         break;
       }
       case 'page':
         if (reading && signature !== detail.signature) { setPage(detail); syncClock(); }
-        break;
-      case 'follow':
-        following = detail.following;
-        rest();
         break;
       case 'contents':
         contentsOpen = detail.open;

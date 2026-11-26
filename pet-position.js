@@ -24,6 +24,23 @@
   }
 
   function attach({ source, pet, button, onMove, onDragStart }) {
+    let activatedTouch = null;
+    document.addEventListener('pointerdown', () => { activatedTouch = null; }, true);
+    // Opening a dialog on pointerup can retarget the native touch click to a
+    // different button. Consume that touch's duplicate before it reaches either.
+    document.addEventListener('click', event => {
+      if (!activatedTouch || !event.isTrusted || !event.detail) return;
+      const sameTouch = event.pointerType
+        ? event.pointerType === 'touch' && event.pointerId === activatedTouch.pointerId
+        : Math.abs(event.timeStamp - activatedTouch.timeStamp) < 800 &&
+          Math.hypot(event.clientX - activatedTouch.clientX, event.clientY - activatedTouch.clientY) < 3;
+      if (sameTouch) {
+        activatedTouch = null;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, true);
+
     function makeMovable(host, handle, surface) {
       const key = 'kanshan.pet.position.' + surface;
       const inReader = surface === 'reader';
@@ -155,7 +172,8 @@
         // dragging. Activate taps once and consume any deferred compatibility click.
         if (touchTap) {
           event.preventDefault();
-          suppressClick = true;
+          const {pointerId, timeStamp, clientX, clientY} = event;
+          activatedTouch = {pointerId, timeStamp, clientX, clientY};
           handle.click();
         }
       });
