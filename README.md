@@ -53,7 +53,7 @@ cd Reading-Assistant
 | --- | --- | --- |
 | GitHub 一键打包 | 打开 [Package demo](https://github.com/DumanHaoqian/Reading-Assistant/actions/workflows/package.yml)，点 **Run workflow**，选分支并运行（需要仓库写权限） | 任务成功后，从本次运行的 **Artifacts** 下载 `Reading-Assistant.zip` |
 | 本地打包 | 在**源码仓库根目录**运行 `python3 scripts/package-demo.py`。Windows 可用 `py -3 scripts/package-demo.py` 或 `python scripts/package-demo.py` | 得到 `dist/Reading-Assistant.zip`，可直接发给队友；只用 Python 3 标准库 |
-| 发布给全队 | 维护者把代码推到 GitHub，再给要发布的提交打一个新的版本标签并推送，例如 `git tag v0.3.1` 后运行 `git push origin v0.3.1` | GitHub 自动打包，在 Windows、macOS、Linux 检查安装，然后创建 Release；页首下载链接会指向新版本 |
+| 发布给全队 | 先推送代码，再用 `git tag -a <新版本号> -m "发布离线包"` 和 `git push origin <新版本号>` 发布。把两处 `<新版本号>` 换成同一个以 `v` 开头、尚未使用的版本号 | GitHub 自动打包，在 Windows、macOS、Linux 检查安装，然后创建 Release；页首下载链接会指向新版本 |
 
 ## 常见问题
 

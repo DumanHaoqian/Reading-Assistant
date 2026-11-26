@@ -4,12 +4,13 @@
   const reader = document.createElement('dialog');
   reader.className = 'ks-reader ks-marked';
   reader.setAttribute('aria-label', '看山陪读双页阅读器');
+  reader.setAttribute('aria-describedby', 'ks-article-title');
   const icon = d => `<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="${d}"/></svg>`;
   reader.innerHTML = `
     <header class="ks-tools">
       <span class="ks-imprint"><img class="ks-brand" src="assets/zhihu-logo.png" alt="知乎"><span class="ks-product">看山陪读</span></span>
-      <span class="ks-title"></span>
-      <button type="button" class="ks-exit">${icon('m10 6-6 6 6 6M4 12h16')}返回原文</button>
+      <span class="ks-title" id="ks-article-title"></span>
+      <button type="button" class="ks-exit" aria-keyshortcuts="Escape" title="返回原文（Esc）">${icon('m10 6-6 6 6 6M4 12h16')}返回原文</button>
     </header>
     <div class="ks-stage">
       <div class="ks-volume">
@@ -21,15 +22,15 @@
           <h2 class="ks-contents-title" id="ks-contents-title">章节目录</h2><ol class="ks-contents-list"></ol>
         </nav>
       </div>
-      <button class="ks-turn ks-prev" aria-label="往前翻页">${icon('m15 5-7 7 7 7')}</button>
-      <button class="ks-turn ks-next" aria-label="往后翻页">${icon('m9 5 7 7-7 7')}</button>
+      <button class="ks-turn ks-prev" aria-label="往前翻页" aria-keyshortcuts="ArrowLeft" title="往前翻页（←）">${icon('M15 5 L8 12 L15 19')}</button>
+      <button class="ks-turn ks-next" aria-label="往后翻页" aria-keyshortcuts="ArrowRight" title="往后翻页（→）">${icon('M9 5 L16 12 L9 19')}</button>
     </div>
     <footer class="ks-footer">
       <div class="ks-progress"><span class="ks-counter" aria-live="polite"></span>
         <span class="ks-progress-track" aria-hidden="true"><span class="ks-progress-fill"></span></span>
       </div>
       <div class="ks-modes" role="group" aria-label="阅读标记">
-        <button class="ks-mark" aria-label="重点" aria-pressed="true" title="标出与文章主题相关的原句或短语">${icon('m5 15 9-10 5 5-9 10-5-5Zm0 0-2 6 7-1M11 8l5 5')}重点</button>
+        <button class="ks-mark" aria-pressed="true">${icon('m5 15 9-10 5 5-9 10-5-5Zm0 0-2 6 7-1M11 8l5 5')}<span>重点</span></button>
         <button class="ks-follow" aria-label="跟读" aria-pressed="false" title="点选当前句，用上下键逐句移动">${icon('M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M7 12h10')}跟读</button>
         <span class="ks-sentence-nav" role="group" aria-label="逐句移动" hidden>
           <button class="ks-sentence-prev" aria-label="上一句" aria-keyshortcuts="ArrowUp" title="上一句（↑）">↑</button>
@@ -498,12 +499,20 @@
     anchor=resumePin() || currentSourceAnchor();
     currentSentence=sentenceAt(anchor);
     get('.ks-follow').disabled=!sentences.length || !window.CSS?.highlights || !window.Highlight;
-    document.documentElement.classList.toggle('ks-source-marked',reader.classList.contains('ks-marked'));
+    const mark = get('.ks-mark');
+    mark.disabled = !source.querySelector('mark[data-ks-key]');
+    mark.querySelector('span').textContent = mark.disabled ? '无重点' : '重点';
+    mark.title = mark.disabled ? '本文未提取到重点' : '标出与文章主题相关的原句或短语';
+    const marked = !mark.disabled && reader.classList.contains('ks-marked');
+    mark.setAttribute('aria-pressed', String(marked));
+    document.documentElement.classList.toggle('ks-source-marked',marked);
     const title=document.querySelector('h1')?.textContent?.trim() || '知乎回答';
     const byline=document.querySelector('[data-reader-author]');
     leaves[0].querySelector('.ks-running').textContent=byline?.dataset.readerAuthor || byline?.textContent?.trim() || '知乎回答';
     get('.ks-title').textContent=title;
-    previousFocus=document.activeElement;previousOverflow=document.documentElement.style.overflow;
+    get('.ks-title').title=title;
+    previousFocus=document.activeElement===document.body ? document.querySelector('#open-reader') : document.activeElement;
+    previousOverflow=document.documentElement.style.overflow;
     visibleSpread = { signature: '', text: '' };
     reader.showModal();document.documentElement.style.overflow='hidden';
     paginate();
@@ -565,7 +574,8 @@
   get('.ks-sentence-prev').onclick=()=>moveSentence(-1);
   get('.ks-sentence-next').onclick=()=>moveSentence(1);
   reader.addEventListener('keydown',event=>{
-    if (event.altKey||event.metaKey||event.ctrlKey) return;
+    if (event.defaultPrevented || event.altKey || event.metaKey || event.ctrlKey ||
+      event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
     if (!contents.hidden) {
       if (event.key === 'Escape') {
         event.preventDefault();

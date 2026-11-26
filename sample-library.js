@@ -206,7 +206,8 @@
     menuButton.type = 'button';
     menuButton.dataset.openSamples = '';
     menuButton.setAttribute('aria-haspopup', 'dialog');
-    document.querySelector('.top-actions').replaceChildren(menuButton);
+    const actions = document.querySelector('.top-actions');
+    actions.replaceChildren(menuButton,actions.querySelector('.viewer'));
     document.getElementById('question').remove();
     const page = element('main', null, 'sample-layout');
     page.innerHTML = `

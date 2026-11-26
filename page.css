@@ -53,7 +53,7 @@ img {max-width:100%;vertical-align:middle}
 .nav-account {gap:1rem;margin-left:.35rem}
 .nav-account a {display:flex;flex-direction:column;align-items:center;color:#515969;font-size:.65rem;line-height:.8rem}
 .nav-account .ic {width:2.15rem;height:1.65rem;margin:0}
-.viewer {flex:none;width:2rem;height:2rem;border-radius:50%;margin-left:.65rem}
+.viewer {flex:none;width:2rem;height:2rem;object-fit:cover;border-radius:50%;margin-left:.65rem}
 .btn {height:2rem;padding:0 .91rem;font-size:.82rem;border:1px solid transparent;border-radius:.2rem;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
 .btn.blue {background:var(--blue);color:white;border-color:var(--blue)}
 .btn.outlined {color:var(--blue);border-color:var(--blue)}
@@ -187,3 +187,10 @@ h1 {font-size:1.31rem;line-height:1.38;margin:.9rem 0 .39rem;letter-spacing:-.02
 
 
 @media(max-width:900px){#article-body .equation{max-width:100%;overflow-x:auto}#article-body math:not([display=block]){max-width:100%;overflow-x:auto}}
+@media(max-width:400px) {
+  .answer-actions {height:auto;min-height:3.12rem;flex-wrap:wrap;row-gap:.35rem}
+}
+@media(max-width:600px) {
+  .top-actions .viewer {display:block;width:1.65rem;height:1.65rem;margin:0}
+  .reading-scroll .top-actions .viewer {display:none}
+}

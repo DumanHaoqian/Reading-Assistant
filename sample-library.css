@@ -97,6 +97,11 @@ html:has(.sample-library[open]) { overflow: hidden; }
 }
 #article-body .sample-table :is(th,td) { border: 1px solid #d9e0e7; padding: .6em .8em; text-align: left; }
 #article-body .sample-table th { background: #f5f7f9; }
+@media (max-width:700px) {
+  #article-body .sample-table {display:block;max-width:100%;overflow-x:auto}
+  #article-body p:has(> math[display="block"]) {overflow-x:auto}
+  #article-body p > math[display="block"] {width:max-content;min-width:100%}
+}
 .sample-view #article-body .sample-sources { border-top: 1px solid #e8edf2; padding-top: 1.2rem; color: #526173; font-size: .85rem; }
 .sample-sources h3 { font-size: 1em; margin: 0 0 .4em; }
 .sample-view #article-body .sample-sources p { margin: .25rem 0; }

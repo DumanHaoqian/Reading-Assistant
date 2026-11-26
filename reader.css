@@ -224,7 +224,7 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   right: clamp(12px, 1.65vw, 30px);
   flex-direction: column;
   gap: 2px;
-  width: 35px;
+  width: 44px;
   height: 56px;
   padding-bottom: 7px;
   border: 0;
@@ -257,6 +257,7 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
 .ks-reader .ks-contents-list button {
   justify-content: flex-start;
   width: 100%;
+  min-height: 44px;
   padding: 9px 8px;
   white-space: normal;
   text-align: left;
@@ -268,16 +269,16 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  height: 39px;
-  width: 39px;
+  height: 44px;
+  width: 44px;
   border: 1px solid #b6c7dc;
   border-radius: 50%;
   background: #edf4fc;
   color: #325072;
 }
 .ks-reader .ks-turn:hover:enabled { background: #f7faff; border-color: #829cbb; }
-.ks-prev { left: max(8px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 20px)); }
-.ks-next { right: max(8px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 20px)); }
+.ks-prev { left: max(3px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 22px)); }
+.ks-next { right: max(3px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 22px)); }
 
 .ks-reader .ks-footer {
   flex: none;
@@ -307,14 +308,15 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   padding: 3px;
   background: #f8fbff;
 }
-.ks-reader .ks-modes > button { min-height: 30px; padding: 0 10px; font-weight: 500; }
+.ks-reader .ks-modes > button { min-height: 36px; padding: 0 10px; font-weight: 500; }
+.ks-reader .ks-modes > button[aria-pressed="true"] { font-weight: 650; box-shadow: inset 0 -2px currentColor; }
 .ks-reader .ks-mark[aria-pressed="true"], .ks-reader .ks-mark[aria-pressed="true"]:hover { color: #204f89; background: #dbe9fa; }
 .ks-reader .ks-follow[aria-pressed="true"], .ks-reader .ks-follow[aria-pressed="true"]:hover { color: #684e16; background: #f7ebc8; }
 .ks-sentence-nav { gap: 2px; border-left: 1px solid #d4dfec; padding-left: 3px; }
-.ks-reader .ks-sentence-nav button { width: 28px; min-height: 30px; }
+.ks-reader .ks-sentence-nav button { width: 36px; min-height: 36px; }
 .ks-reader .ks-font { justify-self: end; gap: 2px; }
 .ks-font > span { color: var(--muted); padding: 0 6px; }
-.ks-reader .ks-font button { width: 28px; min-height: 30px; font-size: 18px; }
+.ks-reader .ks-font button { width: 36px; min-height: 36px; font-size: 18px; }
 .ks-font output { min-width: 36px; text-align: center; font-size: 13px; }
 .ks-forward .ks-leaf:last-child { transform-origin: left center; animation: ks-forward .22s ease-out; }
 .ks-back .ks-leaf:first-child { transform-origin: right center; animation: ks-back .22s ease-out; }
@@ -326,41 +328,52 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   .ks-reader .ks-tools { gap: 12px; grid-template-columns: auto minmax(0, 1fr) auto; }
   .ks-reader .ks-title { text-align: center; }
   .ks-reader .ks-progress { gap: 7px; }
-  .ks-reader .ks-turn { width: 32px; height: 32px; }
 }
 @media (max-width: 700px) {
-  .ks-reader { --side-space: 24px; }
-  .ks-reader .ks-tools { display: flex; justify-content: space-between; min-height: 47px; padding: 6px 13px; }
-  .ks-reader .ks-title { display: none; }
-  .ks-imprint { gap: 9px; }
+  .ks-reader { --side-space: 28px; }
+  .ks-reader .ks-tools { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; min-height: 47px; padding: 3px 13px; }
+  .ks-reader .ks-title { font-size: 13px; }
   .ks-reader .ks-brand { width: 38px; }
-  .ks-product { padding-left: 9px; font-size: 14px; }
-  .ks-reader .ks-exit { min-height: 31px; padding: 0 9px; font-size: 12px; }
+  .ks-product { display: none; }
+  .ks-reader .ks-exit { min-height: 44px; padding: 0 9px; font-size: 12px; }
   .ks-reader .ks-stage { padding-top: 14px; padding-bottom: 21px; }
   .ks-volume::before { inset: -3px -5px -7px; border-radius: 11px; }
   .ks-reader .ks-spread { grid-template-columns: minmax(0, 1fr); }
   .ks-reader .ks-leaf:first-child { padding: 18px clamp(15px, 5vw, 32px) 12px; gap: 13px; border: 1px solid #d8d3c7; border-radius: 8px; box-shadow: 0 1px #fffdf9, 0 2px #c8c2b3, 0 3px #faf6eb, 0 4px #c5beac; }
   .ks-spread::after { display: none; }
   .ks-reader .ks-leaf:last-child { display: none; }
-  .ks-reader .ks-running { padding-right: 30px; }
-  .ks-reader .ks-contents-toggle { right: 10px; top: -4px; width: 28px; height: 43px; }
+  .ks-reader .ks-running { padding-right: 42px; }
+  .ks-reader .ks-contents-toggle { right: 7px; top: -4px; width: 44px; height: 44px; }
   .ks-reader .ks-contents { right: 7px; top: 45px; }
-  .ks-reader .ks-turn { width: 23px; min-height: 46px; border: 0; border-radius: 6px; background: transparent; }
-  .ks-reader .ks-prev { left: 0; }
-  .ks-reader .ks-next { right: 0; }
+  .ks-reader .ks-turn { width: 44px; height: 48px; border: 0; border-radius: 6px; background: transparent; }
+  .ks-reader .ks-turn:focus-visible { outline-offset: -3px; }
+  .ks-reader .ks-prev { left: 0; justify-content: flex-start; padding-left: 5px; }
+  .ks-reader .ks-next { right: 0; justify-content: flex-end; padding-right: 5px; }
   .ks-reader .ks-footer { grid-template-columns: auto auto; gap: 5px 9px; justify-content: center; min-height: 60px; margin: 0; border-radius: 0; border-width: 1px 0 0; padding: 6px 8px max(7px, env(safe-area-inset-bottom)); }
   .ks-progress { grid-column: 1 / -1; justify-content: center; gap: 8px; color: var(--muted); font-size: 11px; }
   .ks-progress-track { width: 44px; }
-  .ks-reader .ks-modes > button { padding: 0 6px; gap: 4px; }
-  .ks-reader .ks-sentence-nav button, .ks-reader .ks-font button { width: 27px; }
+  .ks-reader .ks-modes > button { min-height: 44px; padding: 0 6px; gap: 4px; }
+  .ks-reader .ks-sentence-nav button, .ks-reader .ks-font button { width: 44px; min-height: 44px; }
   .ks-font > span { display: none; }
   .ks-forward .ks-leaf:first-child { transform-origin: left center; animation: ks-forward .22s ease-out; }
 }
-@media (max-width: 355px) {
-  .ks-reader { --side-space: 20px; }
-  .ks-reader .ks-footer { gap: 3px 5px; }
-  .ks-reader .ks-modes > button { padding-inline: 5px; }
+@media (max-width: 470px) {
+  /* When sentence controls appear, put the companion beside the progress counter.
+     The lower row can then use the whole width at phone sizes. */
+  .ks-reader.ks-following .ks-footer:has(.ks-pet) { grid-template-columns: auto auto; }
+  .ks-reader.ks-following .ks-footer > .ks-pet:not([data-positioned]) {
+    grid-area: 1 / 2;
+    justify-self: end;
+    align-self: end;
+  }
+}
+@media (max-width: 375px) {
+  .ks-reader .ks-modes > button { min-width: 42px; padding-inline: 4px; }
   .ks-reader .ks-modes > button svg { display: none; }
+}
+@media (max-width: 335px) {
+  .ks-reader .ks-font output { min-width: 32px; }
+  .ks-reader .ks-sentence-nav button, .ks-reader .ks-font button { width: 40px; }
 }
 @media (max-height: 540px) {
   .ks-reader .ks-tools { min-height: 40px; padding-block: 3px; }
