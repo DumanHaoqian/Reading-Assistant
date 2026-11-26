@@ -130,6 +130,78 @@ test('changing the docked pet size preserves the passage and all controls on a n
   } finally { await context.close(); }
 });
 
+test('appearance changes update the actual artwork, menu preview and already-open article tabs', async () => {
+  const context = await browser.newContext({ viewport: { width: 1040, height: 740 }, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage(), other = await context.newPage();
+    await openBook(page);
+    await openBook(other);
+    const feed = await context.newPage();
+    await feed.goto(new URL('home.html', entry).href);
+    await page.bringToFront();
+    await page.locator('.ks-pet-button').click();
+    await page.locator('.ks-pet-customize').click();
+    const preview = page.locator('.ks-pet-look img');
+    await preview.evaluate(img => img.decode());
+    const original = await preview.boundingBox();
+    const artwork = other.locator('.ks-pet-button .ks-fox');
+    const otherWidth = (await artwork.boundingBox()).width;
+    await page.locator('.ks-pet-larger').click();
+    await page.locator('.ks-pet-mirror').click();
+    assert.equal((await preview.boundingBox()).width, original.width * 1.25);
+    assert.ok(await preview.evaluate(el => getComputedStyle(el).transform.startsWith('matrix(-1,')));
+    assert.equal(await preview.evaluate(el => el.parentElement.getAnimations().length), 0);
+    await other.waitForFunction(width => {
+      const svg = document.querySelector('.ks-pet-button .ks-fox');
+      return svg.getBoundingClientRect().width === width && svg.getScreenCTM().a < 0;
+    }, otherWidth * 1.25);
+    if (entry.protocol !== 'file:') {
+      // file: storage sharing between different HTML files is browser dependent.
+      await feed.waitForFunction(() => {
+        const img = document.querySelector('.home-pet img');
+        return img.complete && img.src.endsWith('/official-idle-poster.webp') &&
+          getComputedStyle(img).transform.startsWith('matrix(-1,');
+      });
+    }
+    await other.locator('.ks-pet-button').click();
+    await other.locator('.ks-pet-customize').click();
+    await other.locator('.ks-pet-smaller').click();
+    await other.locator('.ks-pet-mirror').click();
+    await page.waitForFunction(() => document.querySelector('.ks-pet-appearance output').textContent === '100%' &&
+      document.querySelector('.ks-pet-mirror').getAttribute('aria-pressed') === 'false');
+    assert.equal((await preview.boundingBox()).width, original.width);
+    if (entry.protocol !== 'file:') await feed.locator('.home-pet img[src="assets/companion.png"]').waitFor({state: 'attached'});
+  } finally { await context.close(); }
+});
+
+test('toggling mirror previews a hop towards the new facing direction', async () => {
+  const context = await browser.newContext({ reducedMotion: 'no-preference' });
+  try {
+    const page = await context.newPage();
+    await openBook(page);
+    await page.locator('.ks-pet-button').click();
+    await page.locator('.ks-pet-customize').click();
+    const mirror = page.locator('.ks-pet-mirror');
+    for (const direction of [-1, 1]) {
+      await mirror.click();
+      const offset = await page.locator('.ks-pet-look span').evaluate(el => {
+        const animation = el.getAnimations()[0];
+        animation.pause();
+        animation.currentTime = animation.effect.getTiming().duration * .42;
+        const face = el.getBoundingClientRect();
+        const frame = el.parentElement.getBoundingClientRect();
+        return (face.left + face.right - frame.left - frame.right) / 2;
+      });
+      assert.ok(direction * offset > 12, 'the visible preview moves in the direction the nose points');
+    }
+    await page.locator('.ks-pet-back').click();
+    await page.locator('.ks-pet-quiet').click();
+    await page.locator('.ks-pet-customize').click();
+    await mirror.click();
+    assert.equal(await page.locator('.ks-pet-look span').evaluate(el => el.getAnimations().length), 0);
+  } finally { await context.close(); }
+});
+
 test('the greeting plays the full published clip and returns to the official idle artwork', async () => {
   const context = await browser.newContext({ reducedMotion: 'no-preference' });
   try {

@@ -130,6 +130,35 @@ function activeSentence(page) {
   });
 }
 
+test('book headers retain the article title on the left and its author on the right', async () => {
+  for (const sample of ['d-opsd', 'lu-xun', 'article-630130227']) {
+    const context = await browser.newContext({ viewport: { width: 1200, height: 760 }, reducedMotion: 'reduce' });
+    try {
+      const page = await load(context, sample);
+      const title = (await page.locator('#question-title').textContent()).trim();
+      const author = (await page.locator('[data-reader-author]').textContent()).trim();
+      assert.ok(title && author);
+      await page.locator('#open-reader').click();
+      const labels = page.locator('.ks-running > span:visible');
+      assert.deepEqual(await labels.allTextContents(), [title, author]);
+      assert.equal(await page.locator('.ks-leaf').last().locator('.ks-running-author:visible').textContent(), author);
+      const slider = page.getByRole('slider', { name: '阅读进度' });
+      await slider.press('End');
+      assert.deepEqual(await labels.allTextContents(), [title, author]);
+
+      await page.setViewportSize({ width: 320, height: 640 });
+      await layoutSettled(page);
+      assert.deepEqual(await page.locator('.ks-leaf:visible .ks-running > span:visible').allTextContents(), [title, author]);
+      const [titleBox, authorBox] = await Promise.all([labels.first().boundingBox(), labels.last().boundingBox()]);
+      assert.ok(titleBox.width > 0 && titleBox.x + titleBox.width <= authorBox.x);
+      assert.ok(authorBox.width > 0 && authorBox.x + authorBox.width < 320);
+      assert.equal(await labels.first().getAttribute('title'), title);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 // Use the actual position of one character, including when the phrase crosses an inline mark.
 async function clickPhrase(page, phrase) {
   const point = await page.locator('.ks-leaf:visible .ks-body > p').evaluateAll((pieces, phrase) => {

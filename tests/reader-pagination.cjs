@@ -23,6 +23,48 @@ before(async () => {
 });
 after(async () => { await browser?.close(); });
 
+test('mirroring reverses the companion movement and preserves the page order', async () => {
+  const page = await browser.newPage({viewport: {width: 1024, height: 768}, reducedMotion: 'no-preference'});
+  try {
+    const url = new URL(entry);
+    url.searchParams.set('sample', 'article-630130227');
+    await page.goto(url.href);
+    await page.locator('#open-reader').click();
+    for (const mirrored of [false, true]) {
+      if (mirrored) {
+        await page.locator('.ks-pet-button').click();
+        await page.locator('.ks-pet-customize').click();
+        await page.locator('.ks-pet-mirror').click();
+        await page.locator('.ks-pet-button').click();
+      }
+      for (const reminder of [false, true]) {
+        for (const [arrow, direction] of [['.ks-next', 1], ['.ks-prev', -1]]) {
+          if (reminder) {
+            await page.locator('.ks-pet-button').click();
+            await page.locator('.ks-pet-preview').click();
+          }
+          await page.locator(arrow).click();
+          const shift = await page.locator('.ks-pet .ks-fox-motion').evaluate((motion, hop) => {
+            // Compare the same point on the sprite at rest and at peak travel in screen coordinates.
+            const action = hop ? 'ks-happy-hop' : 'ks-turn-toward-page';
+            const animation = motion.getAnimations().find(a => a.animationName === action);
+            animation.pause();
+            const svg = motion.ownerSVGElement;
+            const foot = new DOMPoint(svg.viewBox.baseVal.width * .5, svg.viewBox.baseVal.height * .89);
+            animation.currentTime = 0;
+            const rest = foot.matrixTransform(motion.getScreenCTM()).x;
+            animation.currentTime = hop ? 640 * .44 : 450 * .45;
+            return foot.matrixTransform(motion.getScreenCTM()).x - rest;
+          }, reminder);
+          const screenDirection = mirrored ? -direction : direction;
+          assert.ok(screenDirection * shift > 1, `screen offset ${shift}; mirror=${mirrored}, direction=${direction}`);
+          assert.match(await page.locator('.ks-counter').innerText(), direction === 1 ? /^第 3–4 \/ / : /^第 1–2 \/ /);
+        }
+      }
+    }
+  } finally { await page.close(); }
+});
+
 for (const { sample, width, height, fontSize } of cases) {
   test(`${sample} at ${width}×${height}, ${fontSize}px keeps the spread stable`, async () => {
     const context = await browser.newContext({ viewport: { width, height } });

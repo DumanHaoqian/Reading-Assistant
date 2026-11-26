@@ -78,7 +78,7 @@
 }
 .ks-reader .ks-pet-button { border-radius: 35%; }
 .ks-reader .ks-pet-button .ks-pet-sprite { width: var(--ks-book-pet-size); }
-[data-mirrored] .ks-pet-sprite { transform: scaleX(-1); }
+[data-ks-pet-mirrored] :is(.ks-pet-sprite, .ks-pet-look img) { transform: scaleX(-1); }
 .ks-reader .ks-pet-button[aria-expanded="true"] { background-color: #dce8f16e; }
 #open-reader[data-dragging], .ks-pet[data-dragging] .ks-pet-button { cursor: grabbing; }
 .ks-pet-panel {
@@ -123,6 +123,16 @@
 .ks-pet-panel .ks-pet-preview { color: #4d617b; }
 .ks-reader .ks-pet-customize { border-top: 1px solid #d6e1ed; border-radius: 0; margin-top: 4px; }
 .ks-pet-customize span { font-size: 20px; }
+.ks-pet-look {
+  display: grid;
+  place-items: center;
+  height: 104px;
+  overflow: hidden;
+  margin: 0 2px 6px;
+  border-radius: 8px;
+  background: #edf3f9;
+}
+.ks-pet-look img { display: block; width: calc(68px * var(--ks-pet-scale, 1)); height: auto; }
 .ks-pet-sizing { display: flex; align-items: center; gap: 2px; padding: 0 2px 4px 8px; }
 .ks-pet-sizing > span { margin-right: auto; }
 .ks-reader .ks-pet-sizing button { width: 44px; min-height: 44px; justify-content: center; font-size: 20px; }

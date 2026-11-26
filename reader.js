@@ -54,7 +54,8 @@
   for (let i = 0; i < 2; i++) {
     const leaf = document.createElement('section');
     leaf.className = 'ks-leaf';
-    leaf.innerHTML = '<div class="ks-running"></div><div class="ks-body"></div><div class="ks-folio"></div>';
+    const heading = i === 0 ? '<span class="ks-running-title"></span>' : '';
+    leaf.innerHTML = '<div class="ks-running">' + heading + '<span class="ks-running-author"></span></div><div class="ks-body"></div><div class="ks-folio"></div>';
     spread.append(leaf);
   }
   const leaves = [...spread.children];
@@ -349,7 +350,7 @@
       const item = document.createElement('li');
       item.append(button);
       contentsList.append(item);
-      chapters.push({block, title:button.textContent, button});
+      chapters.push({block, button});
     });
     contentsToggle.hidden = !chapters.length;
     setContents(false, false);
@@ -363,10 +364,6 @@
       body.replaceChildren(...pieces.map(piece => makeFragment(piece,true)));
       body.scrollTop = 0;
       leaves[side].querySelector('.ks-folio').textContent = pieces.length ? String(number+1).padStart(2,'0') : '';
-      if (side === 1) {
-        const chapter = pieces.length && (chapterAt(pieces[0].block) || chapterAt(pieces[pieces.length-1].block));
-        leaves[side].querySelector('.ks-running').textContent = pieces.length ? chapter?.title || get('.ks-title').textContent : '';
-      }
     }
     const end = Math.min(first + step(),pages.length);
     // Original text offsets keep a page's clock stable across repeated layout passes.
@@ -538,11 +535,15 @@
     const marked = !mark.disabled && reader.classList.contains('ks-marked');
     mark.setAttribute('aria-pressed', String(marked));
     document.documentElement.classList.toggle('ks-source-marked',marked);
-    const title=document.querySelector('h1')?.textContent?.trim() || '知乎回答';
-    const byline=document.querySelector('[data-reader-author]');
-    leaves[0].querySelector('.ks-running').textContent=byline?.dataset.readerAuthor || byline?.textContent?.trim() || '知乎回答';
-    get('.ks-title').textContent=title;
-    get('.ks-title').title=title;
+    const title = document.getElementById('question-title')?.textContent.trim() || '知乎回答';
+    const author = document.querySelector('[data-reader-author]')?.textContent.trim() || '';
+    for (const label of reader.querySelectorAll('.ks-title, .ks-running-title')) {
+      label.textContent = label.title = title;
+    }
+    for (const byline of reader.querySelectorAll('.ks-running-author')) {
+      byline.textContent = byline.title = author;
+      byline.hidden = !author;
+    }
     previousFocus=document.activeElement===document.body ? document.querySelector('#open-reader') : document.activeElement;
     previousOverflow=document.documentElement.style.overflow;
     visibleSpread = { signature: '', text: '' };

@@ -20,6 +20,9 @@
 [data-pose="read"]:not([data-dragging]) .ks-fox-book { display: inline; }
 
 @media (prefers-reduced-motion: no-preference) {
+  .ks-pet { --ks-turn-x: 8%; }
+  .ks-pet[data-direction="left"] { --ks-turn-x: -8%; }
+  [data-quiet="false"][data-action="turn"] .ks-fox-motion { animation: ks-turn-toward-page .45s ease; }
   [data-quiet="false"][data-action="turn"] .ks-fox-book { animation: ks-book-lift .45s ease; }
   [data-quiet="false"][data-action="turn"] .ks-fox-leaf { animation: ks-leaf-turn .45s ease; }
   [data-quiet="false"][data-action="blow"] .ks-fox-body { animation: ks-soft-blow .85s ease-in-out; }
@@ -31,6 +34,7 @@
   }
   [data-quiet="false"][data-landing] .ks-fox-motion { animation: ks-set-down .42s ease-out; }
 }
+@keyframes ks-turn-toward-page { 45% { transform: translate(var(--ks-turn-x), -2%); } }
 @keyframes ks-book-lift { 48% { transform: translateY(-1.2%) rotate(-4deg); } }
 @keyframes ks-leaf-turn {
   0%, 100% { opacity: 0; }
@@ -40,7 +44,7 @@
 @keyframes ks-soft-blow { 44% { transform: translateX(.8%) rotate(3deg); } }
 @keyframes ks-happy-hop {
   16% { transform: scale(1.02, .97); }
-  44% { transform: translateY(-5%) rotate(-3deg); }
+  44% { transform: translate(var(--ks-turn-x), -5%) rotate(-3deg); }
   74% { transform: scale(1.025, .96); }
 }
 @keyframes ks-set-down {

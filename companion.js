@@ -33,6 +33,7 @@
       <button type="button" class="ks-pet-customize" aria-controls="ks-pet-appearance">设置刘看山<span aria-hidden="true">›</span></button>
       </div>
       <div class="ks-pet-appearance" id="ks-pet-appearance" hidden>
+        <div class="ks-pet-look" aria-hidden="true"><span><img src="assets/kanshan/official-idle-poster.webp" alt=""></span></div>
         <div class="ks-pet-sizing" role="group" aria-label="刘看山大小">
           <span>大小</span>
           <button type="button" class="ks-pet-smaller" aria-label="缩小刘看山">−</button>
@@ -57,10 +58,7 @@
 
   let reminders = preference('reminders') === 'true';
   let quiet = preference('quiet') === 'true';
-  const sizes = [75, 100, 125, 150];
-  let petSize = Number(preference('size'));
-  if (!sizes.includes(petSize)) petSize = 100;
-  let mirrored = preference('mirrored') === 'true';
+  const petAppearance = window.KanshanAppearance;
   let reading = false, following = false, contentsOpen = false;
   let signature = null, budget = 0, elapsed = 0, startedAt = null, notified = false;
   let clockTimer, poseTimer, blinkTimer;
@@ -100,14 +98,13 @@
   }
 
   function renderAppearance() {
-    document.documentElement.style.setProperty('--ks-pet-scale', petSize / 100);
-    for (const host of [source, pet]) host.toggleAttribute('data-mirrored', mirrored);
+    const { size: petSize, mirrored, sizes } = petAppearance;
     pet.toggleAttribute('data-enlarged', petSize > 100);
     smaller.disabled = petSize === sizes[0];
     larger.disabled = petSize === sizes[sizes.length - 1];
     appearance.querySelector('output').textContent = petSize + '%';
     mirror.setAttribute('aria-pressed', String(mirrored));
-    mirror.querySelector('.ks-pet-option-value').textContent = mirrored ? '开' : '关';
+    mirror.querySelector('.ks-pet-option-value').textContent = mirrored ? '朝左 ←' : '朝右 →';
     updateGaze();
   }
   function showAppearance(open) {
@@ -135,16 +132,25 @@
   find('back').addEventListener('click', backToMenu);
   for (const [control, direction] of [[smaller, -1], [larger, 1]]) {
     control.addEventListener('click', () => {
-      petSize = sizes[sizes.indexOf(petSize) + direction];
-      save('size', petSize);
-      renderAppearance();
+      const { sizes, size } = petAppearance;
+      petAppearance.setSize(sizes[sizes.indexOf(size) + direction]);
       if (control.disabled) (control === smaller ? larger : smaller).focus();
     });
   }
+  const previewFigure = find('look').firstElementChild;
+  function stopPreviewHop() {
+    for (const animation of previewFigure.getAnimations()) animation.cancel();
+  }
   mirror.addEventListener('click', () => {
-    mirrored = !mirrored;
-    save('mirrored', mirrored);
-    renderAppearance();
+    petAppearance.flip();
+    stopPreviewHop();
+    if (still()) return;
+    const distance = petAppearance.mirrored ? -18 : 18;
+    previewFigure.animate([
+      { transform: 'translate(0, 0)' },
+      { transform: 'translate(' + distance + 'px, -7px)', offset: .42 },
+      { transform: 'translate(0, 0)' },
+    ], { duration: 420, easing: 'ease-in-out' });
   });
 
   // Charge only active reading time. Relayout changes the budget for the visible
@@ -313,7 +319,7 @@
         break;
     }
   });
-  reduceMotion.addEventListener('change', () => { renderPreferences(); rest(); });
+  reduceMotion.addEventListener('change', () => { stopPreviewHop(); renderPreferences(); rest(); });
   document.addEventListener('visibilitychange', () => { syncClock(); rest(); });
   let lastGreeting = -Infinity;
   function greet() {
@@ -337,7 +343,7 @@
       if (time - lastRub < 2500) return;
       const face = handle.querySelector('.ks-pet-sprite').getBoundingClientRect();
       const physicalX = (event.clientX - face.left) / face.width;
-      const x = mirrored ? 1 - physicalX : physicalX;
+      const x = petAppearance.mirrored ? 1 - physicalX : physicalX;
       const y = (event.clientY - face.top) / face.height;
       if (x < .32 || x > .76 || y < .17 || y > .50) { stroke = null; return; }
       if (!stroke || time - stroke.time > 700) stroke = { edge: x, direction: 0, turns: 0 };
@@ -365,6 +371,7 @@
     },
   });
   renderPreferences();
+  document.addEventListener('ks:appearance', renderAppearance);
   renderAppearance();
   rest();
 })();

@@ -98,6 +98,15 @@ body.home-page {background:#f5f6f9;color:var(--dark)}
 .feed-controls .collapse-card {margin-left:auto;color:#657386}
 .feed-controls button,.feed-controls>a,.expand-card {min-width:24px;min-height:24px}
 @media (max-width:760px) {.home-pet.reading-card{bottom:4.75rem}}
+.home-pet.customized {
+  width: max(44px, calc(var(--home-pet-base, 3.45rem) * var(--ks-pet-scale)));
+  height: max(44px, calc(var(--home-pet-base, 3.45rem) * var(--ks-pet-scale)));
+}
+.home-pet.customized img { width: calc(2rem * var(--ks-pet-scale)); height: auto; }
+[data-ks-pet-mirrored] .home-pet img { transform: scaleX(-1); }
+@media (max-width:560px) {
+  .home-pet.customized { --home-pet-base: 2.8rem; }
+}
 @media (max-width:600px) {
   .home-page .site-nav a:nth-child(n+3) {display:none}
   .home-page .top-actions .profile-dot {display:block;width:1.65rem;height:1.65rem;margin:0}

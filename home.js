@@ -45,6 +45,16 @@
   const note = document.getElementById('search-note');
   const status = document.getElementById('home-status');
   const pet = document.querySelector('.home-pet');
+  const petIcon = pet.querySelector('img');
+  const nativeIcon = petIcon.getAttribute('src');
+  function renderPetAppearance() {
+    const { size, mirrored } = window.KanshanAppearance;
+    const customized = size !== 100 || mirrored;
+    pet.classList.toggle('customized', customized);
+    petIcon.setAttribute('src', customized ? 'assets/kanshan/official-idle-poster.webp' : nativeIcon);
+  }
+  renderPetAppearance();
+  document.addEventListener('ks:appearance', renderPetAppearance);
   let statusTimer;
   const preferences = new Map();
   try {
