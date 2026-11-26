@@ -1,0 +1,77 @@
+name: Package demo
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build portable zip
+        run: python3 scripts/package-demo.py
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dist/Reading-Assistant.zip
+          archive: false
+          if-no-files-found: error
+
+  install:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: Reading-Assistant.zip
+          skip-decompress: true
+      - name: Extract the downloaded zip
+        shell: bash
+        run: unzip -q Reading-Assistant.zip -d "demo 安装"
+      - name: Check Windows installation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & ".\demo 安装\Reading-Assistant\install\Install-Windows.cmd" --no-open
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $source = Get-FileHash "demo 安装/Reading-Assistant/index.html"
+          $installed = Get-FileHash "$env:LOCALAPPDATA/ZhihuReadingAssistant/index.html"
+          if ($source.Hash -ne $installed.Hash) { throw "Installed page differs from the zip" }
+      - name: Check macOS installation
+        if: runner.os == 'macOS'
+        run: |
+          sh "demo 安装/Reading-Assistant/install/Install-macOS.command" --no-open
+          cmp "demo 安装/Reading-Assistant/index.html" "$HOME/Applications/Reading Assistant.app/Contents/Resources/site/index.html"
+      - name: Check Linux installation
+        if: runner.os == 'Linux'
+        run: |
+          sh "demo 安装/Reading-Assistant/install/install-linux.sh" --no-open
+          cmp "demo 安装/Reading-Assistant/index.html" "${XDG_DATA_HOME:-$HOME/.local/share}/zhihu-reading-assistant/index.html"
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: install
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: Reading-Assistant.zip
+          skip-decompress: true
+      - name: Publish the tested zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          gh release create "$VERSION" Reading-Assistant.zip --verify-tag \
+            --title "看山陪读 $VERSION" \
+            --notes '下载 Reading-Assistant.zip，完整解压后双击 index.html 即可离线阅读。需要固定入口时，可运行 install 目录里对应系统的安装程序。'
