@@ -2,11 +2,15 @@
 
 看山平时坐在书页外侧。它能看着读者的鼠标，也能被拿起来放到舒服的位置。需要找回刚才读到的那句时，点它就能接着读。
 
+**形象来源**　桌宠使用知乎黑客松 S3 官方素材包里的「待机」「打招呼」「晃悠」透明动画。官方包还包含「瞌睡」「电脑」「运球」和三张角色参考图。平时按原片的侧身角度站立，保留白色头身、前伸的黑鼻子、小黑眼和黑色手脚。[赛事技术支持](https://hackathon-s3.event.zhihu.com/) · [下载官方素材包](https://zhstatic.zhihu.com/skill/application/beb7-261112/kanshan_material.zip)
+
+![左列为知乎官方动画原帧，右列为桌宠在演示页上的同一姿势](kanshan-reference.png)
+
 | 读者的操作或状态 | 看山的回应 |
 | --- | --- |
-| 移动鼠标，或把鼠标停在一处 | 两只瞳孔分别朝指针转动。鼠标停下后，看山继续看着那个位置。靠近原文页的看山，它会抬爪招手。 |
-| 按住看山，把它往任意方向拖 | 原文和书页都可以自由放置。看山被提起时垂下脚，拖动时身体和领巾随方向摆动，落下后轻轻回弹。两个页面分别记住位置。 |
-| 鼠标在看山头上来回摸，或点面板里的「摸摸头」 | 看山会侧脸蹭一下，耳尖垂下来，尾巴摇两下。 |
+| 移动鼠标，或把鼠标停在一处 | 画面中能看见的小黑眼微微移向指针。鼠标停下后，看山继续看着那个位置。靠近原文页的看山，它会用官方动作招手。 |
+| 按住看山，把它往任意方向拖 | 原文和书页都可以自由放置。看山随拖动方向倾斜，落下后轻轻回弹。两个页面分别记住位置。 |
+| 鼠标在看山头上来回摸，或点面板里的「摸摸头」 | 看山朝一边蹭一下，再站稳。 |
 | 自己阅读、正常翻页 | 看山静坐，偶尔眨眼。翻页时它也低一下头，翻动怀里小蓝书的一页。 |
 | 点看山，选「接着这句读」 | 看山捧着蓝书，正文标出当前句。可以用跟读控件逐句前进。 |
 | 开启「专注提醒」，在一屏停留超过预计时长两分钟 | 看山吹出「要接着这页读吗？」。翻页时气泡破开，看山轻跳一下。也可以收起气泡或继续读。 |
@@ -19,8 +23,8 @@
 
 挥爪有起落，跳跃先蓄力。动作幅度按情境变化，读文章时让动作尽量小。[OpenAI 的 hatch-pet 动作说明](https://github.com/openai/skills/blob/main/skills/.curated/hatch-pet/scripts/prepare_pet_run.py)
 
-放下看山时，让脚先着地、身体轻轻压低，最后才让耳尖和尾巴停下。这种先后顺序能表现出角色的重量。[迪士尼动画教学指南，第 12 页](https://a.dolimg.com/media/en-US/disneyeducationalproductions/noma/pdf/DE1775_NOMA_TG.pdf)
+放下看山时，先让脚着地、身体轻轻压低，再恢复站姿。这种先后顺序能表现出角色的重量。[迪士尼动画教学指南，第 12 页](https://a.dolimg.com/media/en-US/disneyeducationalproductions/noma/pdf/DE1775_NOMA_TG.pdf)
 
-眼睛、耳朵、围巾和尾巴各自绘制。瞳孔可以持续看着鼠标，同时播放摸头或拖动动作。拖动直接跟手，松开后再回弹。[Rive 的鼠标跟随角色示例](https://rive.app/community/files/3920-8202-cat-following-the-mouse/) · [Emil Kowalski 的 animate 技能](https://github.com/emilkowalski/skills/blob/main/skills/animate/SKILL.md)
+视线跟随是网页增加的交互。把原片中可见的眼睛单独分层，沿指针方向轻移。闭眼时沿用原片表情。[Rive 的鼠标跟随角色示例](https://rive.app/community/files/3920-8202-cat-following-the-mouse/) · [Emil Kowalski 的 animate 技能](https://github.com/emilkowalski/skills/blob/main/skills/animate/SKILL.md)
 
 ![看山跟随鼠标、被拿起和放下的实录](kanshan-motion.gif)

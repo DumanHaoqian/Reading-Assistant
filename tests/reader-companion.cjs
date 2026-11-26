@@ -39,6 +39,23 @@ async function expectOutsideText(page, selector) {
   assert.equal(blocking, null, selector);
 }
 
+test('the greeting plays the full published clip and returns to the official idle artwork', async () => {
+  const context = await browser.newContext({ reducedMotion: 'no-preference' });
+  try {
+    const page = await context.newPage();
+    await page.goto(entry.href);
+    const pet = page.locator('#open-reader');
+    const waving = pet.locator('.ks-fox[data-clip="wave"]');
+    await pet.hover();
+    await waving.waitFor();
+    assert.match(await waving.locator('.ks-fox-image').getAttribute('href'), /official-wave\.webp$/);
+    // The original wave's raised-hand pose occurs after the UI greeting trigger has ended.
+    await page.waitForFunction(() => Number(document.querySelector('#open-reader .ks-fox[data-clip="wave"]')?.dataset.frame) >= 45);
+    await pet.locator('.ks-fox[data-clip="idle"]').waitFor({timeout: 4000});
+    assert.match(await pet.locator('.ks-fox-image').getAttribute('href'), /official-idle\.webp$/);
+  } finally { await context.close(); }
+});
+
 test('pet settings, preview and an actual page turn work without disrupting book controls', async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
   try {
@@ -173,21 +190,21 @@ test('both pets move across the viewport, retain separate positions and accept k
   } finally { await context.close(); }
 });
 
-test('both eyes track the pointer on each surface and retain their direction when it stops', async () => {
+test('the visible eye in the official three-quarter pose tracks even a stationary pointer', async () => {
   const context = await browser.newContext({viewport: {width: 1120, height: 800}});
   try {
     const page = await context.newPage();
     await page.goto(entry.href);
-    // Measure the visible pupil inside each eye; moving or tilting the entire
-    // character would leave these offsets unchanged.
+    // Compare the original eye pixels with their resting location in this frame.
+    // A tilt of the whole figure leaves their relative offset unchanged.
     function eyesLookToward({host, signX, signY}) {
-      const eyes = Array.from(document.querySelectorAll(host + ' .ks-fox-eye'));
-      return eyes.length === 2 && eyes.every(eye => {
-        const sclera = eye.querySelector('.ks-fox-sclera').getBoundingClientRect();
-        const pupil = eye.querySelector('.ks-fox-pupil ellipse').getBoundingClientRect();
-        if (!sclera.width || !sclera.height || !pupil.width || !pupil.height) return false;
-        const x = (pupil.left + pupil.width / 2 - sclera.left) / sclera.width - .5;
-        const y = (pupil.top + pupil.height / 2 - sclera.top) / sclera.height - .5;
+      const eyes = Array.from(document.querySelectorAll(host + ' .ks-fox-eye[visibility="visible"]'));
+      return eyes.length > 0 && eyes.every(eye => {
+        const socket = eye.querySelector('.ks-fox-sclera').getBoundingClientRect();
+        const pupil = eye.querySelector('.ks-fox-pupil').getBoundingClientRect();
+        if (!socket.width || !socket.height || !pupil.width || !pupil.height) return false;
+        const x = (pupil.left + pupil.width / 2 - socket.left) / socket.width - .5;
+        const y = (pupil.top + pupil.height / 2 - socket.top) / socket.height - .5;
         return Math.abs(x) < .5 && Math.abs(y) < .5 &&
           (!signX || x * signX > .035) && (!signY || y * signY > .035);
       });
@@ -204,7 +221,7 @@ test('both eyes track the pointer on each surface and retain their direction whe
       }
       // Wait beyond the landing/greeting animations without moving the pointer.
       await page.waitForTimeout(850);
-      assert.ok(await page.evaluate(eyesLookToward, {host, signX: 1, signY: 1}));
+      await page.waitForFunction(eyesLookToward, {host, signX: 1, signY: 1}, {timeout: 2000});
       // The pointer stays still while the character moves past it via the keyboard.
       const position = await center(handle);
       await handle.focus();
@@ -255,6 +272,12 @@ test('small screens and reduced motion keep both the reminder and reading contro
   try {
     const page = await context.newPage();
     await openBook(page);
+    const fox = page.locator('.ks-pet-button .ks-fox');
+    await page.waitForFunction(() => document.querySelector('.ks-pet-button .ks-fox').dataset.frame === '0');
+    await page.waitForTimeout(180);
+    assert.equal(await fox.getAttribute('data-frame'), '0', 'reduced motion holds the official resting pose');
+    assert.equal(await fox.locator('.ks-fox-eye[visibility="visible"]').count(), 1,
+      'the official three-quarter resting view has one visible eye');
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 740 });
       await expectOutsideText(page, '.ks-pet-button');

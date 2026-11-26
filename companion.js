@@ -265,7 +265,7 @@
       const face = handle.querySelector('.ks-pet-sprite').getBoundingClientRect();
       const x = (event.clientX - face.left) / face.width;
       const y = (event.clientY - face.top) / face.height;
-      if (x < .14 || x > .8 || y < .07 || y > .54) { stroke = null; return; }
+      if (x < .32 || x > .76 || y < .17 || y > .50) { stroke = null; return; }
       if (!stroke || time - stroke.time > 700) stroke = { edge: x, direction: 0, turns: 0 };
       stroke.time = time;
       const delta = x - stroke.edge;
