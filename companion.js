@@ -28,7 +28,7 @@
         <span class="ks-pet-option-label">专注提醒</span><span class="ks-pet-option-value" aria-hidden="true"></span></button>
       <button type="button" class="ks-pet-quiet" aria-pressed="false">
         <span class="ks-pet-option-label">安静模式</span><span class="ks-pet-option-value" aria-hidden="true"></span></button>
-      <button type="button" class="ks-pet-preview">演示提醒</button>
+      <button type="button" class="ks-pet-preview">预览提醒</button>
     </section>
     <div class="ks-pet-bubble" hidden><span role="status"></span>
       <button type="button" class="ks-pet-dismiss" aria-label="收起气泡" title="收起气泡">×</button></div>

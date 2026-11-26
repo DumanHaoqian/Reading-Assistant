@@ -11,7 +11,7 @@ OUTPUT = ROOT / "dist" / (NAME + ".zip")
 
 
 def bundle_files():
-    files = [ROOT / "index.html", ROOT / "README.md"]
+    files = [ROOT / "index.html", ROOT / "home.html", ROOT / "README.md"]
     files.extend(ROOT.glob("*.css"))
     files.extend(ROOT.glob("*.js"))
     for folder in (ROOT / "assets", ROOT / "install"):

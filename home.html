@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>首页 - 知乎</title>
+  <link rel="icon" href="assets/zhihu-logo.png">
+  <link rel="stylesheet" href="page.css">
+  <link rel="stylesheet" href="home.css">
+  <script defer src="feed-data.js"></script>
+  <script defer src="rich-body.js"></script>
+  <script defer src="home.js"></script>
+</head>
+<body class="home-page">
+<header class="topbar">
+  <div class="top-inner">
+    <a class="brand" href="home.html" aria-label="知乎首页"><img src="assets/zhihu-logo.png" alt="知乎"></a>
+    <nav class="site-nav" aria-label="知乎导航">
+      <a href="https://www.zhihu.com/follow">关注</a><a href="home.html" aria-current="page">推荐</a><a href="https://www.zhihu.com/hot">热榜</a><a href="https://www.zhihu.com/column-square">专栏</a><a href="https://www.zhihu.com/ring-feeds">圈子</a><span class="nav-rule"></span><a class="ai-sub" href="https://www.zhihu.com/project-square">AI Works<sup>Beta</sup></a><a href="https://www.zhihu.com/fiore/h5/vip-web">故事</a>
+    </nav>
+    <div class="top-actions">
+      <form class="search" id="home-search" role="search"><input name="q" placeholder="5090 显卡" aria-label="搜索文章" type="search"><button aria-label="搜索"><i class="ic search-ic"></i></button></form>
+      <a href="https://zhida.zhihu.com/" class="zhida"><img src="assets/zhida.png" alt="直答"></a>
+      <a class="plus" href="https://www.zhihu.com/question/ask" aria-label="提问">+</a>
+      <div class="nav-account"><a href="https://www.zhihu.com/notifications"><span class="tool-icon" data-icon="bell"></span>消息</a><a href="https://www.zhihu.com/inbox"><span class="tool-icon" data-icon="message"></span>私信</a></div>
+      <span class="profile-dot" aria-hidden="true"></span>
+    </div>
+  </div>
+</header>
+<main class="home-grid">
+  <div class="stream">
+    <a class="banner" href="https://hackathon-s3.event.zhihu.com/"><img src="assets/home/hackathon-banner.webp" alt="知乎黑客松 湾区共创季"></a>
+    <section class="panel composer" aria-label="创作">
+      <div class="compose-box">
+        <a class="compose-prompt" href="https://www.zhihu.com/creator/manage/creation/pin"><span class="profile-dot small" aria-hidden="true"></span>分享此刻的想法…</a>
+        <div class="compose-tools">
+          <div class="compose-icons" aria-label="创作工具">
+            <a href="https://www.zhihu.com/creator/manage/creation/pin" aria-label="添加话题">#</a>
+            <a href="https://www.zhihu.com/creator/manage/creation/pin" aria-label="添加表情">☻</a>
+            <a href="https://www.zhihu.com/creator/manage/creation/pin" aria-label="添加图片"><span class="tool-icon" data-icon="image"></span></a>
+            <a href="https://www.zhihu.com/creator/manage/creation/video" aria-label="添加视频"><span class="tool-icon" data-icon="video"></span></a>
+            <a href="https://www.zhihu.com/creator/manage/creation/pin" aria-label="投票"><span class="tool-icon" data-icon="poll"></span></a>
+            <a href="https://www.zhihu.com/creator" aria-label="更多创作工具"><span class="more-dot">···</span></a>
+          </div>
+          <a class="to-circle" href="https://www.zhihu.com/ring-feeds">同步到圈子 ⇅</a>
+          <a class="post-pin" href="https://www.zhihu.com/creator/manage/creation/pin">发想法</a>
+        </div>
+      </div>
+      <nav class="compose-types" aria-label="开始创作">
+        <a href="https://www.zhihu.com/question/ask"><b>?</b>提问题</a>
+        <a href="https://www.zhihu.com/question/waiting"><b>▤</b>写回答</a>
+        <a href="https://zhuanlan.zhihu.com/write"><b>✎</b>写文章</a>
+        <a href="https://www.zhihu.com/creator/manage/creation/video"><b>▷</b>发视频</a>
+      </nav>
+    </section>
+    <div class="feed-search-note" id="search-note" hidden><span></span><button type="button">返回推荐</button></div>
+    <section id="recommendations" aria-label="推荐内容" class="panel"></section>
+  </div>
+  <aside class="home-side" aria-label="侧栏">
+    <section class="panel creator-card">
+      <div class="side-title"><a href="https://www.zhihu.com/creator"><i class="ic invite-ic"></i> 创作中心</a><a class="side-secondary" href="https://www.zhihu.com/creator">草稿箱</a></div>
+      <div class="creator-intro"><div><b>开启你的知乎创作之旅</b><small>来成为知乎创作者吧 ~</small></div><img alt="" src="assets/home/creator-kanshan.webp"></div>
+      <a class="side-cta" href="https://www.zhihu.com/creator">＋开始创作</a>
+    </section>
+    <section class="panel trending">
+      <div class="side-title"><span><span class="heat">♨</span> 大家都在搜</span><button type="button" id="refresh-hot" class="side-secondary">⟳　换一换</button></div>
+      <ol id="hot-terms" class="hot-list"></ol>
+    </section>
+    <section class="panel salt">
+      <div class="side-title"><a href="https://story.zhihu.com/"><span class="salt-icon">⬡</span> 盐言作者平台</a></div>
+      <div class="salt-intro"><div><b>写好故事，赚高收益！</b><small>已有100万+作者入驻</small></div><img alt="" src="assets/home/salt-coins.webp"></div>
+      <a class="side-cta" href="https://story.zhihu.com/">去投稿 ›</a>
+    </section>
+    <div class="panel service-links"><a href="https://www.zhihu.com/consult">付费咨询</a><a href="https://www.zhihu.com/education">知乎知学堂</a></div>
+  </aside>
+</main>
+<a class="home-pet" href="index.html?sample=d-opsd&amp;reader=1" title="进入看山陪读" aria-label="进入看山陪读"><img src="assets/companion.png" alt=""></a>
+<output role="status" class="home-status" id="home-status"></output>
+<dialog id="share-dialog"><form method="dialog"><label for="share-url">分享链接</label><input id="share-url" type="url" readonly><button>关闭</button></form></dialog>
+</body>
+</html>

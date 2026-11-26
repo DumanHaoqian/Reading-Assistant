@@ -101,26 +101,34 @@
     }
     const vote = byId('vote');
     const down = byId('downvote');
+    const baseVotes = vote?.textContent.replace(/^▲\s*赞同\s*/, '').trim() || '';
+    function countAfter(count, added) {
+      return added && /^\d+$/.test(count) ? String(Number(count) + 1) : count;
+    }
     function setVote(state) {
       if (vote) {
         pressed(vote, state === 'up');
-        label(vote, state === 'up' ? '▲ 已赞同 14' : '▲ 赞同 13');
+        const count = countAfter(baseVotes, state === 'up');
+        label(vote, ((state === 'up' ? '▲ 已赞同 ' : '▲ 赞同 ') + count).trim());
         const total = document.querySelector('.agree-line');
-        if (total) total.textContent = (state === 'up' ? '14' : '13') + ' 人赞同了该回答 ›';
+        if (total && count) total.textContent = count + (document.body.classList.contains('feed-column') ? ' 人赞同了该文章' : ' 人赞同了该回答 ›');
       }
       if (down) pressed(down, state === 'down');
     }
     vote?.addEventListener('click', () => setVote(vote.getAttribute('aria-pressed') === 'true' ? '' : 'up'));
     down?.addEventListener('click', () => setVote(down.getAttribute('aria-pressed') === 'true' ? '' : 'down'));
-    for (const [id, inactive, active] of [['save', '16', '17'], ['like', '喜欢', '已喜欢']]) {
+    for (const [id, action] of [['save', '收藏'], ['like', '喜欢']]) {
       const button = byId(id);
       if (!button) continue;
-      if (id === 'save') button.setAttribute('aria-label', '收藏，16 人收藏');
+      const initial = button.textContent.trim();
+      const count = initial === action ? '' : initial;
+      button.setAttribute('aria-label', action + (count ? '，' + count + ' 人' + action : ''));
       button.addEventListener('click', () => {
         const state = button.getAttribute('aria-pressed') !== 'true';
         pressed(button, state);
-        label(button, state ? active : inactive);
-        if (id === 'save') button.setAttribute('aria-label', state ? '取消收藏，17 人收藏' : '收藏，16 人收藏');
+        const value = countAfter(count, state);
+        label(button, value || (state ? '已' : '') + action);
+        button.setAttribute('aria-label', (state ? '取消' : '') + action + (value ? '，' + value + ' 人' + action : ''));
       });
     }
     function bindFollow(selector, inactive, active, countSelector) {
@@ -141,7 +149,7 @@
         });
       }
     }
-    bindFollow('#follow-question,[data-follow-question]', '关注问题', '已关注', '.question-stats .stat-pair b');
+    bindFollow('#follow-question,[data-follow-question]', '关注问题', '已关注', '.question-stats [data-follow-total]');
     bindFollow('[data-follow-author]', '关注', '已关注', '.author-stats > :last-child b');
 
     const comments = byId('comments');

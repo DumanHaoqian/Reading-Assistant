@@ -3,6 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>
+    // Existing section bookmarks belong to the original D-OPSD answer.
+    if (!new URLSearchParams(location.search).has('sample') && !location.hash) {
+      location.replace('home.html' + location.search);
+    }
+  </script>
   <title>如何评价 D-OPSD，少步扩散模型为什么会在继续微调后丢失少步生成能力？ - 知乎</title>
   <link rel="icon" type="image/webp" href="assets/kanshan/official-idle-poster.webp">
   <link rel="stylesheet" href="page.css">
@@ -14,7 +20,9 @@
   <script defer src="suyang-sample.js"></script>
   <script defer src="luxun-sample.js"></script>
   <script defer src="samples.js"></script>
+  <script defer src="feed-data.js"></script>
   <script defer src="reading-highlights.js"></script>
+  <script defer src="rich-body.js"></script>
   <script defer src="sample-library.js"></script>
   <script defer src="page.js"></script>
   <script defer src="reader.js"></script>
@@ -26,16 +34,16 @@
 <body>
   <header class="topbar">
     <div class="top-inner">
-      <a class="brand" href="#question" aria-label="返回问题"><img src="assets/zhihu-logo.png" alt="知乎"></a>
+      <a class="brand" href="home.html" aria-label="返回推荐首页"><img src="assets/zhihu-logo.png" alt="知乎"></a>
       <nav class="site-nav" aria-label="知乎导航">
-        <a href="https://www.zhihu.com/follow">关注</a><a href="https://www.zhihu.com/">推荐</a><a href="https://www.zhihu.com/hot">热榜</a><a href="https://zhuanlan.zhihu.com/">专栏</a><a href="https://www.zhihu.com/club">圈子</a>
+        <a href="https://www.zhihu.com/follow">关注</a><a href="home.html">推荐</a><a href="https://www.zhihu.com/hot">热榜</a><a href="https://zhuanlan.zhihu.com/">专栏</a><a href="https://www.zhihu.com/club">圈子</a>
         <span class="nav-rule"></span><span class="ai-sub">AI Works<sup>Beta</sup></span><a href="https://story.zhihu.com/">故事</a>
       </nav>
       <div class="scroll-title">如何评价 D-OPSD，少步扩散模型为什么会在继续微调后丢失少步生成能力？</div>
       <div class="top-actions">
         <form class="search" action="https://www.zhihu.com/search" role="search"><input name="q" placeholder="miccai什么水平" aria-label="搜索知乎"><button aria-label="搜索"><i class="ic search-ic"></i></button></form>
         <a class="zhida" href="https://zhida.zhihu.com/"><img src="assets/zhida.png" alt="直答"></a>
-        <button class="btn blue scroll-action" data-follow-question>关注问题</button><button class="btn outlined scroll-action" data-notice="演示中可阅读原回答并体验陪读"><i class="ic write-ic"></i>写回答</button>
+        <button class="btn blue scroll-action" data-follow-question>关注问题</button><button class="btn outlined scroll-action" data-notice="写回答需在知乎原站操作"><i class="ic write-ic"></i>写回答</button>
         <a class="plus" href="https://www.zhihu.com/question/ask" aria-label="提问">+</a>
         <div class="nav-account"><a href="https://www.zhihu.com/notifications"><i class="ic bell-ic"></i>消息</a><a href="https://www.zhihu.com/inbox"><i class="ic mail-ic"></i>私信</a></div>
         <img class="viewer" src="assets/viewer.png" alt="用户头像">
@@ -47,10 +55,10 @@
       <div class="question-main">
         <div class="topics"><span>计算机视觉</span><span>深度学习（Deep Learning）</span><span>扩散模型</span></div>
         <h1 id="question-title">如何评价 D-OPSD，少步扩散模型为什么会在继续微调后丢失少步生成能力？</h1>
-        <div class="question-description">经过步数蒸馏的扩散模型可以用少量去噪步骤生成图像，但继续在加噪真实图像上进行常规监督微调，可能使训练状态偏离模型自身的少步采样分布，导致新概念学会了，<span id="question-extra" hidden>〔余下的问题描述未出现在截图中〕</span><button id="question-expand" aria-expanded="false">…显示全部 ﹀</button></div>
-        <div class="question-actions"><button id="follow-question" class="btn blue">关注问题</button><button class="btn outlined" data-notice="此演示展示当前回答"><i class="ic write-ic"></i>写回答</button><button class="btn muted-outline" data-notice="邀请回答需在知乎原站操作"><i class="ic invite-ic"></i>邀请回答</button><button data-notice="已标记为好问题"><i class="ic good-ic"></i>好问题</button><button id="question-comments"><i class="ic comment-ic"></i>2 条评论</button><button data-share><i class="ic share-ic"></i>分享</button><button aria-label="更多问题操作" data-notice="可使用右下角看山进入双页阅读">···</button></div>
+        <div class="question-description">经过步数蒸馏的扩散模型可以用少量去噪步骤生成图像，但继续在加噪真实图像上进行常规监督微调，可能使训练状态偏离模型自身的少步采样分布，导致新概念学会了，<span id="question-extra" hidden>〔问题描述节略〕</span><button id="question-expand" aria-expanded="false">…显示全部 ﹀</button></div>
+        <div class="question-actions"><button id="follow-question" class="btn blue">关注问题</button><button class="btn outlined" data-notice="写回答需在知乎原站操作"><i class="ic write-ic"></i>写回答</button><button class="btn muted-outline" data-notice="邀请回答需在知乎原站操作"><i class="ic invite-ic"></i>邀请回答</button><button data-notice="已标记为好问题"><i class="ic good-ic"></i>好问题</button><button id="question-comments"><i class="ic comment-ic"></i>2 条评论</button><button data-share><i class="ic share-ic"></i>分享</button><button aria-label="更多问题操作" data-notice="可使用右下角看山进入双页阅读">···</button></div>
       </div>
-      <aside class="question-stats"><div class="stat-pair"><div>关注者<b>5</b></div><div>被浏览<b>407</b></div></div><p>叫我 Alonzo 就好了也关注了该问题 <img src="assets/author.png" alt=""></p></aside>
+      <aside class="question-stats"><div class="stat-pair"><div>关注者<b data-follow-total>5</b></div><div>被浏览<b>407</b></div></div><p>叫我 Alonzo 就好了也关注了该问题 <img src="assets/author.png" alt=""></p></aside>
     </div>
   </section>
   <main class="layout">
@@ -58,7 +66,7 @@
       <nav id="toc-links" aria-label="回答目录"><a href="#motivation">一、D-OPSD 的研究动机</a><a href="#method">二、D-OPSD 与现有微调范式的差异及技术细节</a><a href="#results">三、从实验表现看 D-OPSD 带来的实质性增益</a></nav>
     </div></aside>
     <div class="answer-column">
-      <button class="all-answers panel" data-notice="本页复现「叫我Alonzo就好了」的回答">查看全部 2 个回答</button>
+      <button class="all-answers panel" data-notice="当前正在阅读「叫我Alonzo就好了」的回答">查看全部 2 个回答</button>
       <div class="answer-card panel" id="answer">
         <div class="answer-head">
           <div class="author-line"><img class="author-avatar" src="assets/author.png" alt=""><div><strong data-reader-author>叫我Alonzo就好了</strong> <i class="ic verified-ic" aria-label="认证"></i><p>中国科学技术大学 信息与通信工程博士</p></div><button class="follow-author" data-follow-author>已关注</button></div>
@@ -70,7 +78,7 @@
         <div class="column-end">所属专栏 · 昨天 14:01 更新<br><b>成为一名伟大的炼丹师吧</b></div>
         <div class="answer-actions"><button id="vote" class="upvote" aria-pressed="false">▲ 赞同 13</button><button id="downvote" class="downvote" aria-label="反对" aria-pressed="false">▼</button><button id="comments-btn"><i class="ic comment-ic"></i>添加评论</button><button id="save" aria-pressed="false"><i class="ic collect-ic"></i><span>16</span></button><button id="like" aria-pressed="false"><i class="ic heart-ic"></i><span>喜欢</span></button><button id="share-btn"><i class="ic share-ic"></i>分享</button><button id="tool-reader" aria-label="打开看山陪读" title="打开看山陪读"><i class="ic spark-ic"></i></button><button aria-label="更多回答操作" data-notice="可收藏回答，或从右下角进入双页陪读">···</button><button id="collapse-answer" aria-expanded="true">收起 ﹀</button></div>
       </div>
-      <section id="comments" class="panel comments" hidden><h2>评论</h2><div id="comment-list"></div><form id="comment-form"><label for="comment-input">本地演示留言</label><textarea required id="comment-input" placeholder="添加评论…"></textarea><button class="btn blue">添加评论</button></form></section>
+      <section id="comments" class="panel comments" hidden><h2>评论</h2><div id="comment-list"></div><form id="comment-form"><label for="comment-input">添加评论</label><textarea required id="comment-input" placeholder="添加评论…"></textarea><button class="btn blue">添加评论</button></form></section>
     </div>
     <aside class="side-rail" aria-label="相关信息">
       <img class="side-ad panel" src="assets/ad-merch.png" alt="看山有礼">

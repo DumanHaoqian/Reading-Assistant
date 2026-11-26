@@ -30,7 +30,7 @@ for (const { sample, width, height, fontSize } of cases) {
       await context.addInitScript(size => localStorage.setItem('kanshan.reader.font-size', size), String(fontSize));
       const page = await context.newPage();
       const url = new URL(entry);
-      if (sample !== 'd-opsd') url.searchParams.set('sample', sample);
+      url.searchParams.set('sample', sample);
       await page.goto(url.href);
       await page.locator('#open-reader').click();
 

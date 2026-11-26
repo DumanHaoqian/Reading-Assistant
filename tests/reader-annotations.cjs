@@ -17,7 +17,7 @@ after(async () => { await browser?.close(); });
 
 async function load(context, sample) {
   const url = new URL(entry);
-  if (sample !== 'd-opsd') url.searchParams.set('sample', sample);
+  url.searchParams.set('sample', sample);
   const page = await context.newPage();
   await page.goto(url.href);
   await page.locator('#article-body img').evaluateAll(images => Promise.all(images.map(img => img.decode())));

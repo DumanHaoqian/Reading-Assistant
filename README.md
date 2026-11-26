@@ -1,16 +1,17 @@
 # 看山陪读 · Reading Assistant
 
-面向读知乎长文时容易分心的读者。点一下页面右下角的刘看山，就能从正在读的段落进入双页阅读，调整字号、查看重点，或逐句跟读。演示内置 D-OPSD 技术回答、苏洋《2022 岁末总结》、ATR 双语文章和鲁迅《我们现在怎样做父亲》四篇样本。
+从知乎风格的推荐首页选一篇文章，点正文右下角的刘看山，就能从正在读的段落进入双页阅读，调整字号、查看重点，或逐句跟读。
 
-**[下载最新版离线包 · Reading-Assistant.zip](https://github.com/DumanHaoqian/Reading-Assistant/releases/latest/download/Reading-Assistant.zip)**　·　[查看版本记录](https://github.com/DumanHaoqian/Reading-Assistant/releases)
+**[下载离线包 · Reading-Assistant.zip](https://github.com/DumanHaoqian/Reading-Assistant/releases/latest/download/Reading-Assistant.zip)**　·　[查看版本记录](https://github.com/DumanHaoqian/Reading-Assistant/releases)
 
 ## 第一次使用
 
-1. 下载上面的 ZIP。Windows 右键选「全部解压」，macOS 双击解压，Linux 选「提取到此处」。
+1. 将 ZIP 保存到电脑。Windows 右键选「全部解压」，macOS 双击解压，Linux 选「提取到此处」。
 2. 打开解压出的 `Reading-Assistant` 文件夹，双击 **`index.html`**。只要有现代浏览器就能运行，无需安装 Node.js、Python，无需知乎账号或 API Key。
-3. 点击右下角的**陪读**进入书页，用 **← / →** 翻页、**− / +** 调字号。「跟读」开启后可用 **↑ / ↓** 逐句移动。「返回原文」会回到对应段落。要换一篇，在原文页点右下角的「样本」。
+3. 在推荐页点文章标题进入正文。随包附有从推荐流收录的 100 篇完整图文（77 篇回答、23 篇专栏），以及 D-OPSD 技术回答、苏洋《2022 岁末总结》、ATR 双语文章、鲁迅《我们现在怎样做父亲》四篇原有样本。正文页左上角的知乎标志可以带你回到推荐首页。
+4. 在本地正文页点右下角的**陪读**进入书页，用 **← / →** 翻页、**− / +** 调字号。「跟读」开启后可用 **↑ / ↓** 逐句移动。「返回原文」会回到对应段落。要找另一篇离线正文，点原文页右下角的「样本」，可以按标题或作者搜索。
 
-四篇正文、插图、重点标记和桌宠动画都在包内，断网也能读。知乎搜索、作者原文等外部链接需要联网。
+这 104 篇的正文和配图、封面及桌宠动画都从本地加载。作者主页、原站搜索等外部链接需要联网。可用 `index.html?sample=d-opsd` 直接进入技术回答，或加上 `&reader=1` 直接打开双页陪读。重点标记按每篇正文独立生成；短回答里没有合适片段时保持原文。
 
 ## 安装到自己的电脑（可选）
 

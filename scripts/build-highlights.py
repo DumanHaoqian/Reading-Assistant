@@ -17,7 +17,7 @@ import logging
 import math
 import os
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import lru_cache
 from pathlib import Path
 
@@ -37,7 +37,7 @@ EXTRACT = r"""() => {
     let heading = '';
     function prose(node) {
         if (node.nodeType === Node.TEXT_NODE) return node.data;
-        if (node.matches('math, code, pre, .transcription-gap')) return '\uFFFC';
+        if (node.matches('math, code, pre, img, .transcription-gap')) return '\uFFFC';
         return Array.from(node.childNodes, prose).join('');
     }
     for (const node of article.querySelectorAll(':scope > h2, :scope > p, :scope > ul > li, :scope > ol > li')) {
@@ -173,12 +173,22 @@ def rank_article(title, rows):
         if best and best[0] >= 1.85:
             sections[row['heading']].append(best)
 
-    choices = {}
+    finalists = []
     for options in sections.values():
-        # Each section gets a chance; just over half its eligible paragraphs can be marked.
         limit = math.ceil(len(options) * 0.58)
-        for _, i, phrase in sorted(options, key=lambda item: (-item[0], item[1]))[:limit]:
+        finalists.extend(sorted(options, key=lambda item: (-item[0], item[1]))[:limit])
+    # A short answer may be only two or three sentences. Cap the actual marked text,
+    # including identical paragraphs that will share the same DOM lookup key.
+    counts = Counter(row['text'] for row in rows)
+    remaining = sum(len(row['text']) for row in rows) // 4
+    choices, selected = {}, set()
+    for _, i, phrase in sorted(finalists, key=lambda item: (-item[0], item[1])):
+        key = rows[i]['text']
+        size = counts[key] * len(phrase)
+        if key not in selected and size <= remaining:
             choices[i] = phrase
+            selected.add(key)
+            remaining -= size
     return {rows[i]['text']: choices[i] for i in sorted(choices)}
 
 
@@ -191,7 +201,8 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path=os.environ.get('CHROME_PATH'))
         page = browser.new_page()
-        page.goto((ROOT / 'index.html').as_uri())
+        page.route('**/*', lambda route: route.abort() if route.request.resource_type == 'image' else route.continue_())
+        page.goto((ROOT / 'index.html').as_uri() + '?sample=d-opsd', wait_until='domcontentloaded')
         samples = page.locator('#sample-library .library-link').evaluate_all(
             "links => links.map(link => ({id: new URL(link.href).searchParams.get('sample'), url: link.href}))"
         )
@@ -201,7 +212,7 @@ def main():
             sample_id = sample['id']
             if not sample_id or sample_id in highlights:
                 raise ValueError(f'Missing or repeated article ID in the library: {sample_id!r}')
-            page.goto(sample['url'])
+            page.goto(sample['url'], wait_until='domcontentloaded')
             article = page.evaluate(EXTRACT)
             if article['id'] != sample_id or not article['title'].strip():
                 raise ValueError(f'Article identity missing or incorrect: {sample_id}')

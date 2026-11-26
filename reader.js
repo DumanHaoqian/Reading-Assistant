@@ -630,4 +630,9 @@
     if (event.key === fontPreference || event.key === null) updateFont(savedFontSize(), false);
   });
   updateFont(savedFontSize(), false);
+  if (new URLSearchParams(location.search).get('reader') === '1') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!document.querySelector('#sample-library[open]')) requestAnimationFrame(openReader);
+    }, {once: true});
+  }
 })();
