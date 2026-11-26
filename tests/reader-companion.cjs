@@ -252,10 +252,20 @@ test('trying on outfits updates the mirrored artwork and preserves the current p
     await page.getByRole('button', { name: '设置刘看山', exact: true }).click();
     const outfit = name => page.getByRole('radio', { name, exact: true });
     assert.ok(await outfit('原样').isChecked());
-    const face = other.locator('.ks-pet-button .ks-fox[data-clip="idle"]');
+    const face = other.locator('.ks-pet-button .ks-fox[data-book-open][data-clip="idle"][data-frame="0"]');
     await face.waitFor();
     // Compare the chest only, excluding the tracking eyes and the page behind the character.
     async function chestPixels() {
+      await other.bringToFront();
+      await face.evaluate(async svg => {
+        for (const layer of svg.querySelectorAll('.ks-fox-image, .ks-fox-garment[href]')) {
+          const art = new Image();
+          art.src = layer.getAttribute('href');
+          await art.decode();
+        }
+        // A storage event updates the SVG attributes before Chrome repaints its <use> copy.
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
       const { x, y, width, height } = await face.boundingBox();
       return other.screenshot({ clip: {
         x: Math.round(x + width * .45), y: Math.round(y + height * .52),
@@ -293,8 +303,13 @@ test('trying on outfits updates the mirrored artwork and preserves the current p
     await other.locator('#open-reader').click();
     await face.locator('.ks-fox-garment[href$="wardrobe-vest-idle.webp"]').waitFor();
     await outfit('原样').check();
-    await face.locator('.ks-fox-garment:visible').waitFor({ state: 'hidden' });
-    assert.ok((await chestPixels()).equals(plain), 'removing the outfit restores the original fur');
+    await face.locator('.ks-fox-garment[display="none"]:not([href])').waitFor({state: 'attached'});
+    const deadline = Date.now() + 2500;
+    let restoredPixels;
+    do {
+      restoredPixels = await chestPixels();
+    } while (!restoredPixels.equals(plain) && Date.now() < deadline);
+    assert.ok(restoredPixels.equals(plain), 'removing the outfit restores the original fur');
   } finally { await context.close(); }
 });
 
