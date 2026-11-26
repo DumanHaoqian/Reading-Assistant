@@ -8,10 +8,10 @@
 
 1. 将 ZIP 保存到电脑。Windows 右键选「全部解压」，macOS 双击解压，Linux 选「提取到此处」。
 2. 打开解压出的 `Reading-Assistant` 文件夹，双击 **`index.html`**。只要有现代浏览器就能运行，无需安装 Node.js、Python，无需知乎账号或 API Key。
-3. 在推荐页点文章标题进入正文。随包附有从推荐流收录的 100 篇完整图文（77 篇回答、23 篇专栏），以及 D-OPSD 技术回答、苏洋《2022 岁末总结》、ATR 双语文章、鲁迅《我们现在怎样做父亲》四篇原有样本。正文页左上角的知乎标志可以带你回到推荐首页。
+3. 在推荐页点「阅读全文」原地展开，或点标题进入正文页。v0.3.0 新增 100 篇，推荐列表累计收录 **200 篇**（158 篇回答、42 篇专栏）。列表中也保留了 D-OPSD 技术回答、苏洋《2022 岁末总结》、ATR 双语文章和鲁迅《我们现在怎样做父亲》四篇原有样本。正文页左上角的知乎标志可以带你回到推荐首页。
 4. 在本地正文页点右下角的**陪读**进入书页，用 **← / →** 翻页、**− / +** 调字号。「跟读」开启后可用 **↑ / ↓** 逐句移动。「返回原文」会回到对应段落。要找另一篇离线正文，点原文页右下角的「样本」，可以按标题或作者搜索。
 
-这 104 篇的正文和配图、封面及桌宠动画都从本地加载。作者主页、原站搜索等外部链接需要联网。可用 `index.html?sample=d-opsd` 直接进入技术回答，或加上 `&reader=1` 直接打开双页陪读。重点标记按每篇正文独立生成；短回答里没有合适片段时保持原文。
+共 **204 篇**可离线阅读。推荐流的 200 篇保留了正文中 842 处插图；配图、封面及桌宠动画都从本地加载。作者主页、原站搜索等外部链接需要联网。可用 `index.html?sample=d-opsd` 直接进入技术回答，或加上 `&reader=1` 直接打开双页陪读。重点标记按每篇正文独立生成，短回答里没有合适片段时保持原文。
 
 ## 安装到自己的电脑（可选）
 
@@ -53,7 +53,7 @@ cd Reading-Assistant
 | --- | --- | --- |
 | GitHub 一键打包 | 打开 [Package demo](https://github.com/DumanHaoqian/Reading-Assistant/actions/workflows/package.yml)，点 **Run workflow**，选分支并运行（需要仓库写权限） | 任务成功后，从本次运行的 **Artifacts** 下载 `Reading-Assistant.zip` |
 | 本地打包 | 在**源码仓库根目录**运行 `python3 scripts/package-demo.py`。Windows 可用 `py -3 scripts/package-demo.py` 或 `python scripts/package-demo.py` | 得到 `dist/Reading-Assistant.zip`，可直接发给队友；只用 Python 3 标准库 |
-| 发布给全队 | 维护者把代码推到 GitHub，再给要发布的提交打一个新的版本标签并推送，例如 `git tag v0.1.1` 后运行 `git push origin v0.1.1` | GitHub 自动打包，在 Windows、macOS、Linux 检查安装，然后创建 Release；页首下载链接会指向新版本 |
+| 发布给全队 | 维护者把代码推到 GitHub，再给要发布的提交打一个新的版本标签并推送，例如 `git tag v0.3.1` 后运行 `git push origin v0.3.1` | GitHub 自动打包，在 Windows、macOS、Linux 检查安装，然后创建 Release；页首下载链接会指向新版本 |
 
 ## 常见问题
 
