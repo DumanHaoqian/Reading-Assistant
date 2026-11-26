@@ -39,6 +39,97 @@ async function expectOutsideText(page, selector) {
   assert.equal(blocking, null, selector);
 }
 
+test('appearance preferences apply to both pets and mirrored eyes still look towards the pointer', async () => {
+  const context = await browser.newContext({ viewport: { width: 1024, height: 740 }, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await openBook(page);
+    const pet = page.locator('.ks-pet-button');
+    const panel = page.locator('.ks-pet-panel');
+    const size = panel.locator('output');
+    const larger = panel.getByRole('button', { name: '放大刘看山' });
+    const smaller = panel.getByRole('button', { name: '缩小刘看山' });
+    const initial = await pet.boundingBox();
+    await pet.click();
+    await panel.getByRole('button', { name: '设置刘看山' }).click();
+    await smaller.click();
+    assert.equal(await size.innerText(), '75%');
+    assert.ok(await smaller.isDisabled());
+    assert.equal((await pet.boundingBox()).width, initial.width * .75);
+    for (let i = 0; i < 3; i++) await larger.click();
+    assert.equal(await size.innerText(), '150%');
+    assert.ok(await larger.isDisabled());
+    assert.equal((await pet.boundingBox()).width, initial.width * 1.5);
+    await panel.getByRole('button', { name: '左右镜像' }).click();
+    await page.keyboard.press('Escape');
+    assert.ok(await panel.getByRole('button', { name: '设置刘看山' }).evaluate(el => el === document.activeElement));
+    await page.keyboard.press('Escape');
+    assert.ok(await pet.evaluate(el => el === document.activeElement));
+    // Move the pet to allow pointer positions on either side, then test at an edge.
+    await dragPet(page, pet, 500, 360);
+    for (const direction of [-1, 1]) {
+      await page.mouse.move(500 + direction * 200, 360);
+      await page.waitForFunction(sign => {
+        const eye = document.querySelector('.ks-pet .ks-fox-eye[visibility="visible"]');
+        if (!eye || eye.getScreenCTM().a >= 0) return false;
+        const pupil = eye.querySelector('.ks-fox-pupil').getBoundingClientRect();
+        const socket = eye.querySelector('.ks-fox-sclera').getBoundingClientRect();
+        return sign * (pupil.left - socket.left) > .3;
+      }, direction);
+    }
+    await dragPet(page, pet, 1022, 738);
+    await expectInsideViewport(page, pet);
+    await pet.click();
+    await panel.getByRole('button', { name: '设置刘看山' }).click();
+    await expectInsideViewport(page, panel);
+    await page.locator('.ks-exit').click();
+    await page.reload();
+    const source = page.locator('#open-reader');
+    assert.equal((await source.boundingBox()).width, 144);
+    assert.ok(await source.evaluate(el => getComputedStyle(el.querySelector('.ks-pet-sprite')).transform.startsWith('matrix(-1,')));
+    await source.click();
+    await pet.click();
+    await panel.getByRole('button', { name: '设置刘看山' }).click();
+    assert.equal(await size.innerText(), '150%');
+    assert.equal(await panel.getByRole('button', { name: '左右镜像' }).getAttribute('aria-pressed'), 'true');
+    await smaller.click();
+    await smaller.click();
+    await panel.getByRole('button', { name: '左右镜像' }).click();
+    assert.equal((await pet.boundingBox()).width, initial.width);
+    assert.equal(await pet.locator('.ks-pet-sprite').evaluate(el => getComputedStyle(el).transform), 'none');
+  } finally { await context.close(); }
+});
+
+test('changing the docked pet size preserves the passage and all controls on a narrow phone', async () => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 700 }, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await openBook(page);
+    await page.locator('.ks-next').click();
+    await page.locator('.ks-follow').click();
+    const content = page.locator('.ks-leaf .ks-body').first();
+    const counter = page.locator('.ks-counter');
+    const initial = { text: await content.textContent(), pages: await counter.textContent() };
+    await page.locator('.ks-pet-button').click();
+    await page.locator('.ks-pet-customize').click();
+    await page.locator('.ks-pet-larger').dblclick();
+    assert.equal(await page.locator('.ks-pet-appearance output').innerText(), '150%');
+    await page.locator('.ks-pet-back').click();
+    await page.locator('.ks-pet-preview').click();
+    await expectOutsideText(page, '.ks-pet-button');
+    await expectOutsideText(page, '.ks-pet-bubble');
+    assert.equal(await content.textContent(), initial.text);
+    assert.equal(await counter.textContent(), initial.pages);
+    for (const selector of ['.ks-progress-slider', '.ks-sentence-next', '.ks-larger']) {
+      const hit = await page.locator(selector).evaluate(node => {
+        const rect = node.getBoundingClientRect();
+        return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      });
+      assert.ok(hit, selector + ' remains reachable with a large pet and visible reminder');
+    }
+  } finally { await context.close(); }
+});
+
 test('the greeting plays the full published clip and returns to the official idle artwork', async () => {
   const context = await browser.newContext({ reducedMotion: 'no-preference' });
   try {

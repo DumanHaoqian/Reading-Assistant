@@ -269,16 +269,18 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  height: 44px;
-  width: 44px;
+  height: 48px;
+  width: 48px;
   border: 1px solid #b6c7dc;
   border-radius: 50%;
   background: #edf4fc;
   color: #325072;
 }
 .ks-reader .ks-turn:hover:enabled { background: #f7faff; border-color: #829cbb; }
-.ks-prev { left: max(3px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 22px)); }
-.ks-next { right: max(3px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 22px)); }
+.ks-reader .ks-turn svg { width: 32px; height: 32px; stroke-width: 3; }
+.ks-reader .ks-turn:disabled, .ks-reader .ks-sentence-nav button:disabled { opacity: .54; }
+.ks-prev { left: max(1px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 24px)); }
+.ks-next { right: max(1px, calc((100% - min(100% - 2 * var(--side-space), 1270px)) / 4 - 24px)); }
 
 .ks-reader .ks-footer {
   flex: none;
@@ -299,8 +301,39 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
 .ks-progress, .ks-font, .ks-modes, .ks-sentence-nav { display: inline-flex; align-items: center; }
 .ks-progress { min-width: 0; gap: 12px; }
 .ks-counter, .ks-font output { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.ks-progress-track { display: block; width: clamp(36px, 7vw, 100px); height: 3px; border-radius: 2px; background: #c5d4e6; }
-.ks-progress-fill { display: block; height: 100%; border-radius: inherit; background: #5479ac; }
+.ks-counter-box { display: grid; flex: none; white-space: nowrap; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--desk-ink); }
+.ks-counter-box::before, .ks-counter { grid-area: 1 / 1; }
+.ks-counter-box::before { content: attr(data-sizing-label); visibility: hidden; }
+.ks-progress-slider {
+  --ks-track: linear-gradient(to right, #4771a8 var(--ks-progress, 0%), #c2d1e3 var(--ks-progress, 0%));
+  appearance: none;
+  width: clamp(110px, 12vw, 180px);
+  min-width: 54px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  accent-color: #4771a8;
+  cursor: pointer;
+}
+.ks-progress-slider::-webkit-slider-runnable-track { height: 7px; border-radius: 6px; background: var(--ks-track); }
+.ks-progress-slider::-moz-range-track { height: 7px; border-radius: 6px; background: var(--ks-track); }
+.ks-progress-slider::-webkit-slider-thumb {
+  appearance: none; box-sizing: border-box; width: 18px; height: 18px; margin-top: -5.5px;
+  border: 2px solid #fff; border-radius: 50%; background: #4771a8; box-shadow: 0 0 0 1px #54749b;
+}
+.ks-progress-slider::-moz-range-thumb {
+  box-sizing: border-box; width: 18px; height: 18px;
+  border: 2px solid #fff; border-radius: 50%; background: #4771a8; box-shadow: 0 0 0 1px #54749b;
+}
+.ks-progress-slider:focus-visible { outline: 2px solid #245fac; outline-offset: 2px; }
+.ks-progress-slider:disabled { opacity: .55; cursor: default; }
+@media (forced-colors: active) {
+  .ks-progress-slider { appearance: auto; }
+  .ks-progress-slider::-webkit-slider-thumb { appearance: auto; margin: 0; }
+}
 .ks-modes, .ks-font {
   gap: 3px;
   border: 1px solid #c5d3e3;
@@ -313,7 +346,8 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
 .ks-reader .ks-mark[aria-pressed="true"], .ks-reader .ks-mark[aria-pressed="true"]:hover { color: #204f89; background: #dbe9fa; }
 .ks-reader .ks-follow[aria-pressed="true"], .ks-reader .ks-follow[aria-pressed="true"]:hover { color: #684e16; background: #f7ebc8; }
 .ks-sentence-nav { gap: 2px; border-left: 1px solid #d4dfec; padding-left: 3px; }
-.ks-reader .ks-sentence-nav button { width: 36px; min-height: 36px; }
+.ks-reader .ks-sentence-nav button { width: 40px; min-height: 40px; }
+.ks-reader .ks-sentence-nav svg { width: 24px; height: 24px; stroke-width: 2.8; }
 .ks-reader .ks-font { justify-self: end; gap: 2px; }
 .ks-font > span { color: var(--muted); padding: 0 6px; }
 .ks-reader .ks-font button { width: 36px; min-height: 36px; font-size: 18px; }
@@ -327,7 +361,9 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   .ks-reader { --side-space: 49px; }
   .ks-reader .ks-tools { gap: 12px; grid-template-columns: auto minmax(0, 1fr) auto; }
   .ks-reader .ks-title { text-align: center; }
-  .ks-reader .ks-progress { gap: 7px; }
+  .ks-reader .ks-footer { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 12px; padding-left: 16px; }
+  .ks-reader .ks-progress { flex-direction: column; align-items: flex-start; gap: 0; }
+  .ks-progress-slider { width: min(100%, 170px); height: 26px; }
 }
 @media (max-width: 700px) {
   .ks-reader { --side-space: 28px; }
@@ -346,12 +382,14 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   .ks-reader .ks-contents-toggle { right: 7px; top: -4px; width: 44px; height: 44px; }
   .ks-reader .ks-contents { right: 7px; top: 45px; }
   .ks-reader .ks-turn { width: 44px; height: 48px; border: 0; border-radius: 6px; background: transparent; }
+  .ks-reader .ks-turn svg { width: 28px; height: 28px; }
   .ks-reader .ks-turn:focus-visible { outline-offset: -3px; }
-  .ks-reader .ks-prev { left: 0; justify-content: flex-start; padding-left: 5px; }
-  .ks-reader .ks-next { right: 0; justify-content: flex-end; padding-right: 5px; }
+  .ks-reader .ks-prev { left: 0; justify-content: flex-start; }
+  .ks-reader .ks-next { right: 0; justify-content: flex-end; }
   .ks-reader .ks-footer { grid-template-columns: auto auto; gap: 5px 9px; justify-content: center; min-height: 60px; margin: 0; border-radius: 0; border-width: 1px 0 0; padding: 6px 8px max(7px, env(safe-area-inset-bottom)); }
-  .ks-progress { grid-column: 1 / -1; justify-content: center; gap: 8px; color: var(--muted); font-size: 11px; }
-  .ks-progress-track { width: 44px; }
+  .ks-progress { grid-column: 1 / -1; justify-content: center; gap: 10px; max-width: 100%; }
+  .ks-counter-box { font-size: 16px; }
+  .ks-progress-slider { width: clamp(110px, 32vw, 170px); }
   .ks-reader .ks-modes > button { min-height: 44px; padding: 0 6px; gap: 4px; }
   .ks-reader .ks-sentence-nav button, .ks-reader .ks-font button { width: 44px; min-height: 44px; }
   .ks-font > span { display: none; }
@@ -361,6 +399,10 @@ html:has(.ks-reader[open]) { scrollbar-gutter: auto; }
   /* When sentence controls appear, put the companion beside the progress counter.
      The lower row can then use the whole width at phone sizes. */
   .ks-reader.ks-following .ks-footer:has(.ks-pet) { grid-template-columns: auto auto; }
+  .ks-reader.ks-following .ks-footer:has(.ks-pet:not([data-positioned])) .ks-progress,
+  .ks-footer:has(.ks-pet[data-enlarged]:not([data-positioned])) .ks-progress {
+    max-width: calc(100% - max(44px, var(--ks-book-pet-size, 54px)) - 8px);
+  }
   .ks-reader.ks-following .ks-footer > .ks-pet:not([data-positioned]) {
     grid-area: 1 / 2;
     justify-self: end;

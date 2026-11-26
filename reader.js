@@ -26,15 +26,16 @@
       <button class="ks-turn ks-next" aria-label="往后翻页" aria-keyshortcuts="ArrowRight" title="往后翻页（→）">${icon('M9 5 L16 12 L9 19')}</button>
     </div>
     <footer class="ks-footer">
-      <div class="ks-progress"><span class="ks-counter" aria-live="polite"></span>
-        <span class="ks-progress-track" aria-hidden="true"><span class="ks-progress-fill"></span></span>
+      <div class="ks-progress"><span class="ks-counter-box"><span class="ks-counter" aria-live="polite"></span></span>
+        <input class="ks-progress-slider" type="range" min="1" max="1" value="1"
+          aria-label="阅读进度" title="拖动跳页，也可以用左右方向键微调" disabled>
       </div>
       <div class="ks-modes" role="group" aria-label="阅读标记">
         <button class="ks-mark" aria-pressed="true">${icon('m5 15 9-10 5 5-9 10-5-5Zm0 0-2 6 7-1M11 8l5 5')}<span>重点</span></button>
         <button class="ks-follow" aria-label="跟读" aria-pressed="false" title="点选当前句，用上下键逐句移动">${icon('M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M7 12h10')}跟读</button>
         <span class="ks-sentence-nav" role="group" aria-label="逐句移动" hidden>
-          <button class="ks-sentence-prev" aria-label="上一句" aria-keyshortcuts="ArrowUp" title="上一句（↑）">↑</button>
-          <button class="ks-sentence-next" aria-label="下一句" aria-keyshortcuts="ArrowDown" title="下一句（↓）">↓</button>
+          <button class="ks-sentence-prev" aria-label="上一句" aria-keyshortcuts="ArrowUp" title="上一句（↑）">${icon('M12 20V4 M5 11 L12 4 L19 11')}</button>
+          <button class="ks-sentence-next" aria-label="下一句" aria-keyshortcuts="ArrowDown" title="下一句（↓）">${icon('M12 4V20 M5 13 L12 20 L19 13')}</button>
         </span>
       </div>
       <div class="ks-font" role="group" aria-label="阅读字号"><span>字号</span>
@@ -46,6 +47,7 @@
   document.body.append(reader);
   const get = selector => reader.querySelector(selector);
   const spread = get('.ks-spread');
+  const progressSlider = get('.ks-progress-slider');
   const contents = get('.ks-contents');
   const contentsToggle = get('.ks-contents-toggle');
   const contentsList = get('.ks-contents-list');
@@ -242,13 +244,17 @@
   function pinKey() {
     return 'kanshan.reader.sentence:'+location.pathname+':'+(new URLSearchParams(location.search).get('sample')||'d-opsd');
   }
+  function pinQuote(position) {
+    const block = blocks[position.block];
+    if (!block || position.offset < 0 || position.offset > block.length) return null;
+    const sentence = sentences[sentenceAt(position)];
+    if (sentence) return block.text.slice(sentence.start, sentence.end);
+    // A new page can also begin with a figure, table or space between sentences.
+    return JSON.stringify([block.node.localName, block.text.slice(0, 96), block.node.querySelector('img')?.getAttribute('src')]);
+  }
   function rememberPin() {
-    const sentence=sentences[sentenceAt(anchor)],key=pinKey();
     try {
-      if (sentence) {
-        const quote=blocks[sentence.block].text.slice(sentence.start,sentence.end);
-        localStorage.setItem(key,JSON.stringify({...anchor,quote,sourceY:scrollY}));
-      } else localStorage.removeItem(key);
+      localStorage.setItem(pinKey(),JSON.stringify({...anchor,quote:pinQuote(anchor),sourceY:scrollY}));
     } catch { /* The in-document return position also works without storage. */ }
   }
   function resumePin() {
@@ -258,8 +264,7 @@
     let pin;
     try {pin=JSON.parse(localStorage.getItem(key))} catch {return null}
     if (!pin || !Number.isInteger(pin.block) || !Number.isInteger(pin.offset)) return null;
-    const sentence=sentences[sentenceAt(pin)];
-    if (!sentence || blocks[sentence.block].text.slice(sentence.start,sentence.end)!==pin.quote) return null;
+    if (typeof pin.quote!=='string' || pinQuote(pin)!==pin.quote) return null;
     const unchanged=Math.abs(scrollY-pin.sourceY)<=16;
     return unchanged || scrollY<1 ? {block:pin.block,offset:pin.offset} : null;
   }
@@ -374,8 +379,20 @@
         visibleSpread = { signature, text };
       }
     }
-    get('.ks-counter').textContent = '第 '+(first+1)+(end>first+1?'–'+end:'')+' / '+pages.length+' 页';
-    get('.ks-progress-fill').style.width = (100 * end / pages.length) + '%';
+    const pageLabel = '第 '+(first+1)+(end>first+1?'–'+end:'')+' / '+pages.length+' 页';
+    get('.ks-counter').textContent = pageLabel;
+    // Reserve the widest folio number so the slider does not move under the pointer.
+    const widest = String(pages.length);
+    get('.ks-counter-box').dataset.sizingLabel = '第 '+widest+(step() === 2 ? '–'+widest : '')+' / '+widest+' 页';
+    const spreadCount = Math.ceil(pages.length / step());
+    const currentSpread = first / step() + 1;
+    progressSlider.disabled = spreadCount <= 1;
+    progressSlider.min = spreadCount > 1 ? 1 : 0;
+    progressSlider.max = spreadCount;
+    progressSlider.value = currentSpread;
+    progressSlider.setAttribute('aria-valuetext', pageLabel);
+    const fraction = spreadCount > 1 ? (currentSpread - 1) / (spreadCount - 1) : 1;
+    progressSlider.style.setProperty('--ks-progress', (fraction * 100) + '%');
     updateChapterSelection();
     get('.ks-prev').disabled = first === 0;
     get('.ks-next').disabled = end >= pages.length;
@@ -463,14 +480,29 @@
     }
     queueLayout();
   }
-  function turn(direction) {
-    const next=first+direction*step();
-    if (!pages[next]) return;
+  function showPage(next, direction) {
+    if (!pages[next] || next === first) return;
     anchor={block:pages[next][0].block,offset:pages[next][0].start};
     if (following) chooseVisibleSentence();
     paint(direction);
+  }
+  function turn(direction) {
+    showPage(first+direction*step(), direction);
     rememberPin();
   }
+  let scrubStart = null;
+  progressSlider.addEventListener('input', () => {
+    if (scrubStart === null) scrubStart = first;
+    showPage((progressSlider.valueAsNumber - 1) * step(), 0);
+  });
+  progressSlider.addEventListener('change', () => {
+    // Scrub without a flip animation; acknowledge the completed turn just once.
+    if (scrubStart !== null && scrubStart !== first) {
+      notifyCompanion('turn', {direction:Math.sign(first - scrubStart)});
+      rememberPin();
+    }
+    scrubStart = null;
+  });
   function restoreSource(position) {
     const block=blocks[position.block];if (!block?.node.isConnected) return;
     let rect=block.node.getBoundingClientRect();

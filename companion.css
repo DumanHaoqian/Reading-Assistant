@@ -1,5 +1,5 @@
 /* Moving the fox leaves the original site's other shortcuts in place. */
-.float-tools { --pet-side: 1.7rem; --pet-bottom: 1.6rem; --pet-size: 96px; }
+.float-tools { --pet-side: 1.7rem; --pet-bottom: 1.6rem; --pet-base-size: 96px; --pet-size: calc(var(--pet-base-size) * var(--ks-pet-scale, 1)); }
 .float-tools:has(.ks-pet-sprite) { z-index: 20; pointer-events: none; justify-items: end; }
 .float-tools:has(.ks-pet-sprite) > button { pointer-events: auto; }
 .float-tools:has(.ks-pet-sprite)::after { content: ""; width: var(--pet-size); height: calc(var(--pet-size) + 12px); }
@@ -49,9 +49,10 @@
 #open-reader[data-dragging]::before { display: none; }
 
 .ks-reader .ks-footer:has(.ks-pet) {
+  --ks-book-pet-size: calc(var(--ks-book-pet-base, 76px) * var(--ks-pet-scale, 1));
   position: relative;
   z-index: 3;
-  padding-right: max(96px, calc(var(--side-space) - 14px), calc((100% - 1270px) / 2 - 14px));
+  padding-right: max(calc(var(--ks-book-pet-size) + 20px), calc(var(--side-space) - 14px), calc((100% - 1270px) / 2 - 14px));
 }
 .ks-pet {
   position: absolute;
@@ -59,8 +60,8 @@
   bottom: 0;
   display: flex;
   align-items: flex-end;
-  width: 76px;
-  height: 76px;
+  width: max(44px, var(--ks-book-pet-size));
+  height: max(44px, var(--ks-book-pet-size));
   color: #2b415c;
 }
 .ks-reader .ks-pet-button,
@@ -76,6 +77,8 @@
   -webkit-touch-callout: none;
 }
 .ks-reader .ks-pet-button { border-radius: 35%; }
+.ks-reader .ks-pet-button .ks-pet-sprite { width: var(--ks-book-pet-size); }
+[data-mirrored] .ks-pet-sprite { transform: scaleX(-1); }
 .ks-reader .ks-pet-button[aria-expanded="true"] { background-color: #dce8f16e; }
 #open-reader[data-dragging], .ks-pet[data-dragging] .ks-pet-button { cursor: grabbing; }
 .ks-pet-panel {
@@ -118,6 +121,14 @@
 .ks-pet-panel [aria-pressed="true"] .ks-pet-option-value { color: #234e87; background: #d8e9fb; }
 .ks-pet-panel .ks-pet-resume { color: #285b99; }
 .ks-pet-panel .ks-pet-preview { color: #4d617b; }
+.ks-reader .ks-pet-customize { border-top: 1px solid #d6e1ed; border-radius: 0; margin-top: 4px; }
+.ks-pet-customize span { font-size: 20px; }
+.ks-pet-sizing { display: flex; align-items: center; gap: 2px; padding: 0 2px 4px 8px; }
+.ks-pet-sizing > span { margin-right: auto; }
+.ks-reader .ks-pet-sizing button { width: 44px; min-height: 44px; justify-content: center; font-size: 20px; }
+.ks-pet-sizing output { min-width: 4ch; text-align: center; font-variant-numeric: tabular-nums; }
+.ks-reader .ks-pet-appearance :is(.ks-pet-mirror, .ks-pet-back) { min-height: 44px; }
+.ks-reader .ks-pet-back { color: #285b99; }
 .ks-pet-bubble {
   position: absolute;
   right: 5px;
@@ -157,25 +168,37 @@
 
 @media (max-width: 700px) {
   .ks-reader .ks-footer:has(.ks-pet) {
-    grid-template-columns: auto auto 54px;
-    grid-template-rows: 24px auto;
+    --ks-book-pet-base: 54px;
+    grid-template-columns: auto auto max(44px, var(--ks-book-pet-size));
+    grid-template-rows: auto auto;
     gap: 2px 7px;
     padding: 4px 7px max(6px, env(safe-area-inset-bottom));
   }
   .ks-footer:has(.ks-pet) .ks-progress { grid-area: 1 / 1 / 2 / 3; justify-self: start; }
   .ks-footer:has(.ks-pet) .ks-modes { grid-area: 2 / 1; }
   .ks-footer:has(.ks-pet) .ks-font { grid-area: 2 / 2; }
-  .ks-pet { position: relative; inset: auto; grid-area: 1 / 3 / 3; align-self: end; width: 54px; height: 54px; }
-  .ks-pet-bubble { top: 0; bottom: auto; right: calc(100% - 5px); min-height: 24px; border-radius: 12px 12px 3px 12px; }
+  .ks-pet { position: relative; inset: auto; grid-area: 1 / 3 / 3; align-self: end; }
+  .ks-pet-bubble { min-height: 24px; }
   .ks-pet-pop { right: 95%; bottom: auto; top: 2px; }
-  .ks-footer:has(.ks-pet:not([data-positioned]) .ks-pet-bubble:not([hidden])) .ks-progress-track { visibility: hidden; }
 }
 @media (max-width: 600px) {
-  .float-tools { --pet-side: .68rem; --pet-bottom: 3.85rem; --pet-size: 72px; }
+  .float-tools { --pet-side: .68rem; --pet-bottom: 3.85rem; --pet-base-size: 72px; }
 }
 @media (max-width: 355px) {
-  .ks-reader .ks-footer:has(.ks-pet) { grid-template-columns: auto auto 48px; column-gap: 4px; }
-  .ks-pet { width: 48px; height: 48px; }
+  .ks-reader .ks-footer:has(.ks-pet) { --ks-book-pet-base: 48px; column-gap: 4px; }
+}
+@media (max-width: 470px) {
+  .ks-reader .ks-footer:has(.ks-pet[data-enlarged]) { grid-template-columns: auto auto; }
+  .ks-footer > .ks-pet[data-enlarged]:not([data-positioned]) { grid-area: 1 / 2; justify-self: end; }
+  /* Let the larger figure extend into the folio margin, without resizing the
+     paper or moving the reader to a different passage when a size is chosen. */
+  :is(.ks-following .ks-pet, .ks-pet[data-enlarged]):not([data-positioned]) {
+    margin-block-start: min(0px, calc(36px - max(44px, var(--ks-book-pet-size))));
+  }
+  :is(.ks-following .ks-pet, .ks-pet[data-enlarged]):not([data-positioned]) .ks-pet-bubble {
+    right: calc(100% - 4px);
+    bottom: 39px;
+  }
 }
 
 #open-reader[data-positioned], .ks-pet[data-positioned] {
@@ -202,6 +225,13 @@
   bottom: auto;
 }
 .ks-pet[data-positioned][data-half="top"] .ks-pet-pop { top: 95%; bottom: auto; }
+.ks-reader .ks-pet .ks-pet-panel[data-pinned] {
+  position: fixed;
+  inset: auto;
+  left: clamp(6px, var(--ks-appearance-x), calc(100vw - min(224px, 100vw - 24px) - 6px));
+  top: clamp(6px, var(--ks-appearance-y), calc(100dvh - var(--ks-appearance-height) - 6px));
+  max-height: calc(100dvh - 12px);
+}
 @media (hover: none) {
   #open-reader:has(.ks-pet-sprite):hover:not(:focus-visible)::before { display: none; }
 }

@@ -22,6 +22,7 @@
       aria-expanded="false" aria-controls="ks-pet-panel"><span class="ks-pet-sprite" aria-hidden="true"></span></button>
     <section class="ks-pet-panel" id="ks-pet-panel" aria-labelledby="ks-pet-heading" hidden>
       <h2 class="ks-pet-heading" id="ks-pet-heading">刘看山陪读</h2>
+      <div class="ks-pet-menu">
       <button type="button" class="ks-pet-resume">接着这句读</button>
       <button type="button" class="ks-pet-nuzzle">摸摸头</button>
       <button type="button" class="ks-pet-reminders" aria-pressed="false" title="超过本页预计阅读时间两分钟时提醒一次">
@@ -29,6 +30,18 @@
       <button type="button" class="ks-pet-quiet" aria-pressed="false">
         <span class="ks-pet-option-label">安静模式</span><span class="ks-pet-option-value" aria-hidden="true"></span></button>
       <button type="button" class="ks-pet-preview">预览提醒</button>
+      <button type="button" class="ks-pet-customize" aria-controls="ks-pet-appearance">设置刘看山<span aria-hidden="true">›</span></button>
+      </div>
+      <div class="ks-pet-appearance" id="ks-pet-appearance" hidden>
+        <div class="ks-pet-sizing" role="group" aria-label="刘看山大小">
+          <span>大小</span>
+          <button type="button" class="ks-pet-smaller" aria-label="缩小刘看山">−</button>
+          <output aria-label="刘看山大小"></output>
+          <button type="button" class="ks-pet-larger" aria-label="放大刘看山">+</button>
+        </div>
+        <button type="button" class="ks-pet-mirror" aria-pressed="false">左右镜像<span class="ks-pet-option-value" aria-hidden="true"></span></button>
+        <button type="button" class="ks-pet-back">返回陪读菜单</button>
+      </div>
     </section>
     <div class="ks-pet-bubble" hidden><span role="status"></span>
       <button type="button" class="ks-pet-dismiss" aria-label="收起气泡" title="收起气泡">×</button></div>
@@ -37,11 +50,17 @@
   const find = name => pet.querySelector('.ks-pet-' + name);
   const button = find('button'), panel = find('panel'), bubble = find('bubble'), pop = find('pop');
   const remindersButton = find('reminders'), quietButton = find('quiet');
+  const appearance = find('appearance'), customize = find('customize');
+  const smaller = find('smaller'), larger = find('larger'), mirror = find('mirror');
   const status = bubble.querySelector('[role="status"]');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
   let reminders = preference('reminders') === 'true';
   let quiet = preference('quiet') === 'true';
+  const sizes = [75, 100, 125, 150];
+  let petSize = Number(preference('size'));
+  if (!sizes.includes(petSize)) petSize = 100;
+  let mirrored = preference('mirrored') === 'true';
   let reading = false, following = false, contentsOpen = false;
   let signature = null, budget = 0, elapsed = 0, startedAt = null, notified = false;
   let clockTimer, poseTimer, blinkTimer;
@@ -80,6 +99,54 @@
     quietButton.querySelector('.ks-pet-option-value').textContent = reduceMotion.matches ? '跟随系统' : reduced ? '开' : '关';
   }
 
+  function renderAppearance() {
+    document.documentElement.style.setProperty('--ks-pet-scale', petSize / 100);
+    for (const host of [source, pet]) host.toggleAttribute('data-mirrored', mirrored);
+    pet.toggleAttribute('data-enlarged', petSize > 100);
+    smaller.disabled = petSize === sizes[0];
+    larger.disabled = petSize === sizes[sizes.length - 1];
+    appearance.querySelector('output').textContent = petSize + '%';
+    mirror.setAttribute('aria-pressed', String(mirrored));
+    mirror.querySelector('.ks-pet-option-value').textContent = mirrored ? '开' : '关';
+    updateGaze();
+  }
+  function showAppearance(open) {
+    delete panel.dataset.pinned;
+    find('menu').hidden = open;
+    appearance.hidden = !open;
+    find('heading').textContent = open ? '设置刘看山' : '刘看山陪读';
+    if (open) {
+      // Keep repeated +/- clicks under the pointer as the character changes size.
+      const box = panel.getBoundingClientRect();
+      panel.style.setProperty('--ks-appearance-x', box.left + 'px');
+      panel.style.setProperty('--ks-appearance-y', box.top + 'px');
+      panel.style.setProperty('--ks-appearance-height', panel.scrollHeight + 2 + 'px');
+      panel.dataset.pinned = 'true';
+    }
+  }
+  customize.addEventListener('click', () => {
+    showAppearance(true);
+    (smaller.disabled ? larger : smaller).focus();
+  });
+  function backToMenu() {
+    showAppearance(false);
+    customize.focus();
+  }
+  find('back').addEventListener('click', backToMenu);
+  for (const [control, direction] of [[smaller, -1], [larger, 1]]) {
+    control.addEventListener('click', () => {
+      petSize = sizes[sizes.indexOf(petSize) + direction];
+      save('size', petSize);
+      renderAppearance();
+      if (control.disabled) (control === smaller ? larger : smaller).focus();
+    });
+  }
+  mirror.addEventListener('click', () => {
+    mirrored = !mirrored;
+    save('mirrored', mirrored);
+    renderAppearance();
+  });
+
   // Charge only active reading time. Relayout changes the budget for the visible
   // prose, while only an actual navigation starts the clock from zero.
   function stopClock() {
@@ -116,6 +183,7 @@
   }
   function setPanel(open, returnFocus = true) {
     panel.hidden = !open;
+    showAppearance(false);
     button.setAttribute('aria-expanded', String(open));
     if (open) {
       hideReminder();
@@ -171,10 +239,11 @@
     if (panel.hidden || event.altKey || event.metaKey || event.ctrlKey) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      setPanel(false);
+      if (appearance.hidden) setPanel(false);
+      else backToMenu();
     } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
       event.preventDefault();
-      const options = Array.from(panel.querySelectorAll('button:enabled'));
+      const options = Array.from((appearance.hidden ? find('menu') : appearance).querySelectorAll('button:enabled'));
       let next = options.indexOf(document.activeElement) + (event.key === 'ArrowUp' ? -1 : 1);
       if (event.key === 'Home') next = 0;
       if (event.key === 'End') next = options.length - 1;
@@ -184,7 +253,11 @@
     event.stopPropagation();
   });
   reader.addEventListener('cancel', event => {
-    if (!panel.hidden) { event.preventDefault(); setPanel(false); }
+    if (!panel.hidden) {
+      event.preventDefault();
+      if (appearance.hidden) setPanel(false);
+      else backToMenu();
+    }
   });
   for (const eventName of ['pointerdown', 'focusin']) {
     reader.addEventListener(eventName, event => {
@@ -263,7 +336,8 @@
       const time = performance.now();
       if (time - lastRub < 2500) return;
       const face = handle.querySelector('.ks-pet-sprite').getBoundingClientRect();
-      const x = (event.clientX - face.left) / face.width;
+      const physicalX = (event.clientX - face.left) / face.width;
+      const x = mirrored ? 1 - physicalX : physicalX;
       const y = (event.clientY - face.top) / face.height;
       if (x < .32 || x > .76 || y < .17 || y > .50) { stroke = null; return; }
       if (!stroke || time - stroke.time > 700) stroke = { edge: x, direction: 0, turns: 0 };
@@ -291,5 +365,6 @@
     },
   });
   renderPreferences();
+  renderAppearance();
   rest();
 })();
