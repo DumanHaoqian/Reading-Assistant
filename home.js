@@ -48,10 +48,11 @@
   const petIcon = pet.querySelector('img');
   const nativeIcon = petIcon.getAttribute('src');
   function renderPetAppearance() {
-    const { size, mirrored } = window.KanshanAppearance;
-    const customized = size !== 100 || mirrored;
+    const { size, mirrored, outfit, poster } = window.KanshanAppearance;
+    const customized = size !== 100 || mirrored || outfit !== 'original';
     pet.classList.toggle('customized', customized);
-    petIcon.setAttribute('src', customized ? 'assets/kanshan/official-idle-poster.webp' : nativeIcon);
+    const src = customized ? poster : nativeIcon;
+    if (petIcon.getAttribute('src') !== src) petIcon.setAttribute('src', src);
   }
   renderPetAppearance();
   document.addEventListener('ks:appearance', renderPetAppearance);

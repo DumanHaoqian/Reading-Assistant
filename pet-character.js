@@ -8,7 +8,9 @@
       attach({source, pet}) {
         for (const host of [source, pet]) {
           const image = new Image();
-          image.src = directory + 'official-idle-poster.webp';
+          const dress = () => { image.src = window.KanshanAppearance.poster; };
+          dress();
+          document.addEventListener('ks:appearance', dress);
           image.alt = '';
           image.className = 'ks-fox';
           host.querySelector('.ks-pet-sprite').replaceChildren(image);
@@ -42,7 +44,8 @@
       </defs>
       <g class="ks-fox-motion"><g class="ks-fox-body">
         <g clip-path="url(#${id}-frame)">
-          <image class="ks-fox-image" width="${size}" height="${size}" href="${directory}official-idle-poster.webp" preserveAspectRatio="none"/>
+          <image class="ks-fox-image" width="${size}" height="${size}" href="${window.KanshanAppearance.poster}" preserveAspectRatio="none"/>
+          <image class="ks-fox-garment" display="none" preserveAspectRatio="none"/>
         </g>
         ${eye(0)}${eye(1)}
         <g class="ks-fox-book" stroke-linejoin="round" stroke-width="1.8">
@@ -56,7 +59,8 @@
       </g></g></svg>`;
     const svg = sprite.firstElementChild;
     return {
-      host, svg, image: svg.querySelector('.ks-fox-image'), eyesImage: svg.querySelector('#' + id + '-eyes'),
+      host, svg, image: svg.querySelector('.ks-fox-image'), garment: svg.querySelector('.ks-fox-garment'),
+      eyesImage: svg.querySelector('#' + id + '-eyes'),
       eyes: Array.from(svg.querySelectorAll('.ks-fox-eye'), (socket, side) => ({
         socket, box: socket.querySelector('.ks-fox-sclera'), pupil: socket.querySelector('.ks-fox-pupil'),
         pattern: svg.querySelector('#' + id + '-patch-' + side), patch: svg.querySelector('.ks-patch-' + side),
@@ -70,6 +74,23 @@
     const ready = new Map();
     let face = faces[0], activeClip = 'idle', requested = '', previousAction, cursor;
     let began = performance.now(), pausedAt = null, timer, gazeFrame = 0, movingUntil = 0;
+
+    function dress(item) {
+      const name = item.svg.dataset.clip;
+      if (!name) {
+        item.image.setAttribute('href', window.KanshanAppearance.poster);
+        return;
+      }
+      const outfit = window.KanshanAppearance.outfit;
+      if (outfit === 'original') {
+        item.garment.setAttribute('display', 'none');
+        item.garment.removeAttribute('href');
+      } else {
+        item.garment.setAttribute('href', directory + 'wardrobe-' + outfit + '-' + name + '.webp');
+        item.garment.removeAttribute('display');
+      }
+    }
+    document.addEventListener('ks:appearance', () => faces.forEach(dress));
 
     function updateEyes() {
       gazeFrame = 0;
@@ -96,8 +117,10 @@
     function render(clip, name, index) {
       const cols = columns;
       if (face.svg.dataset.clip !== name) {
-        face.image.setAttribute('width', cols * size);
-        face.image.setAttribute('height', Math.ceil(clip.frames.length / cols) * size);
+        for (const layer of [face.image, face.garment]) {
+          layer.setAttribute('width', cols * size);
+          layer.setAttribute('height', Math.ceil(clip.frames.length / cols) * size);
+        }
         face.image.setAttribute('href', clip.atlas);
         face.eyesImage.setAttribute('width', cols * clip.eyeCell);
         face.eyesImage.setAttribute('height', clip.eyeRows * clip.eyeCell);
@@ -107,10 +130,13 @@
           pattern.setAttribute('height', clip.eyeCell);
         }
         face.svg.dataset.clip = name;
+        dress(face);
       } else if (Number(face.svg.dataset.frame) === index) return;
       face.svg.dataset.frame = index;
-      face.image.setAttribute('x', -(index % cols) * size);
-      face.image.setAttribute('y', -Math.floor(index / cols) * size);
+      for (const layer of [face.image, face.garment]) {
+        layer.setAttribute('x', -(index % cols) * size);
+        layer.setAttribute('y', -Math.floor(index / cols) * size);
+      }
       face.eyes.forEach((eye, side) => {
         const bounds = side ? clip.farEyes?.[index] : clip.frames[index];
         eye.bounds = bounds;

@@ -230,6 +230,74 @@ test('appearance changes update the actual artwork, menu preview and already-ope
   } finally { await context.close(); }
 });
 
+test('trying on outfits updates the mirrored artwork and preserves the current passage', async () => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
+  try {
+    await context.addInitScript(() => {
+      localStorage.setItem('kanshan.pet.size', '300');
+      localStorage.setItem('kanshan.pet.mirrored', 'true');
+    });
+    const page = await context.newPage(), other = await context.newPage();
+    const home = entry.protocol === 'file:' ? null : await context.newPage();
+    if (home) await home.goto(new URL('home.html', entry).href);
+    await openBook(other);
+    await openBook(page);
+    await page.locator('.ks-next').click();
+    await page.locator('.ks-follow').click();
+    const followedText = () => page.evaluate(() => [...CSS.highlights.get('ks-follow-sentence')].map(r => r.toString()).join(''));
+    const sentence = await followedText();
+    const counter = await page.locator('.ks-counter').innerText();
+    assert.ok(sentence.trim());
+    await page.locator('.ks-pet-button').click();
+    await page.getByRole('button', { name: '设置刘看山', exact: true }).click();
+    const outfit = name => page.getByRole('radio', { name, exact: true });
+    assert.ok(await outfit('原样').isChecked());
+    const face = other.locator('.ks-pet-button .ks-fox[data-clip="idle"]');
+    await face.waitFor();
+    // Compare the chest only, excluding the tracking eyes and the page behind the character.
+    async function chestPixels() {
+      const { x, y, width, height } = await face.boundingBox();
+      return other.screenshot({ clip: {
+        x: Math.round(x + width * .45), y: Math.round(y + height * .52),
+        width: Math.round(width * .12), height: Math.round(height * .14),
+      } });
+    }
+    const plain = await chestPixels();
+    let scarf;
+    for (const [label, id] of [['围巾', 'scarf'], ['马甲', 'vest']]) {
+      if (id === 'vest') await outfit('围巾').press('ArrowRight');
+      else await outfit(label).check();
+      assert.ok(await outfit(label).isChecked());
+      const preview = page.locator('.ks-pet-look img[src$="wardrobe-' + id + '-poster.webp"]');
+      await preview.waitFor();
+      await preview.evaluate(img => img.decode());
+      if (home) {
+        const feedArt = home.locator('.home-pet img[src$="wardrobe-' + id + '-poster.webp"]');
+        await feedArt.waitFor();
+        await feedArt.evaluate(img => img.decode());
+      }
+      const garment = face.locator('.ks-fox-garment[href$="wardrobe-' + id + '-idle.webp"]');
+      await garment.waitFor();
+      assert.ok(await garment.evaluate(layer => layer.getScreenCTM().a < 0));
+      const pixels = await chestPixels();
+      assert.ok(!pixels.equals(plain), label + ' is drawn on the character');
+      if (scarf) assert.ok(!pixels.equals(scarf), 'the two outfits are visibly different');
+      else scarf = pixels;
+    }
+    assert.equal(await followedText(), sentence);
+    assert.equal(await page.locator('.ks-counter').innerText(), counter);
+
+    await other.reload();
+    const restored = other.locator('#open-reader .ks-fox-garment[href$="wardrobe-vest-idle.webp"]');
+    await restored.waitFor();
+    await other.locator('#open-reader').click();
+    await face.locator('.ks-fox-garment[href$="wardrobe-vest-idle.webp"]').waitFor();
+    await outfit('原样').check();
+    await face.locator('.ks-fox-garment:visible').waitFor({ state: 'hidden' });
+    assert.ok((await chestPixels()).equals(plain), 'removing the outfit restores the original fur');
+  } finally { await context.close(); }
+});
+
 test('toggling mirror previews a hop towards the new facing direction', async () => {
   const context = await browser.newContext({ reducedMotion: 'no-preference' });
   try {
@@ -262,6 +330,7 @@ test('the greeting plays the full published clip and returns to the official idl
   const context = await browser.newContext({ reducedMotion: 'no-preference' });
   try {
     const page = await context.newPage();
+    await page.addInitScript(() => localStorage.setItem('kanshan.pet.outfit', 'scarf'));
     await page.goto(entry.href);
     const pet = page.locator('#open-reader');
     const waving = pet.locator('.ks-fox[data-clip="wave"]');
@@ -270,6 +339,12 @@ test('the greeting plays the full published clip and returns to the official idl
     assert.match(await waving.locator('.ks-fox-image').getAttribute('href'), /official-wave\.webp$/);
     // The original wave's raised-hand pose occurs after the UI greeting trigger has ended.
     await page.waitForFunction(() => Number(document.querySelector('#open-reader .ks-fox[data-clip="wave"]')?.dataset.frame) >= 45);
+    const aligned = await waving.evaluate(svg => {
+      const body = svg.querySelector('.ks-fox-image'), garment = svg.querySelector('.ks-fox-garment');
+      return garment.getAttribute('href').endsWith('/wardrobe-scarf-wave.webp') &&
+        ['x', 'y', 'width', 'height'].every(attr => body.getAttribute(attr) === garment.getAttribute(attr));
+    });
+    assert.ok(aligned, 'the scarf displays the same waving frame as the character');
     await pet.locator('.ks-fox[data-clip="idle"]').waitFor({timeout: 4000});
     assert.match(await pet.locator('.ks-fox-image').getAttribute('href'), /official-idle\.webp$/);
   } finally { await context.close(); }

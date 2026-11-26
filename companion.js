@@ -34,6 +34,14 @@
       </div>
       <div class="ks-pet-appearance" id="ks-pet-appearance" hidden>
         <div class="ks-pet-look" aria-hidden="true"><span><img src="assets/kanshan/official-idle-poster.webp" alt=""></span></div>
+        <fieldset class="ks-pet-outfits">
+          <legend>换装</legend>
+          <div class="ks-pet-outfit-options">
+            <label><input type="radio" name="ks-outfit" value="original" checked>原样</label>
+            <label><input type="radio" name="ks-outfit" value="scarf">围巾</label>
+            <label><input type="radio" name="ks-outfit" value="vest">马甲</label>
+          </div>
+        </fieldset>
         <div class="ks-pet-sizing" role="group" aria-label="刘看山大小">
           <span>大小</span>
           <button type="button" class="ks-pet-smaller" aria-label="缩小刘看山">−</button>
@@ -52,6 +60,8 @@
   const button = find('button'), panel = find('panel'), bubble = find('bubble'), pop = find('pop');
   const remindersButton = find('reminders'), quietButton = find('quiet');
   const appearance = find('appearance'), customize = find('customize');
+  const outfits = find('outfits'), previewImage = find('look').querySelector('img');
+  let requestedPoster = previewImage.getAttribute('src');
   const smaller = find('smaller'), larger = find('larger'), mirror = find('mirror');
   const status = bubble.querySelector('[role="status"]');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -98,7 +108,21 @@
   }
 
   function renderAppearance() {
-    const { size: petSize, mirrored, sizes } = petAppearance;
+    const { size: petSize, mirrored, sizes, outfit, poster } = petAppearance;
+    for (const option of outfits.elements) option.checked = option.value === outfit;
+    if (requestedPoster !== poster) {
+      requestedPoster = poster;
+      if (previewImage.getAttribute('src') !== poster) {
+        // Keep showing the previous outfit while the selected poster decodes.
+        const next = new Image();
+        next.src = poster;
+        next.decode().then(() => {
+          if (requestedPoster === poster) previewImage.src = poster;
+        }).catch(() => {
+          if (requestedPoster === poster) requestedPoster = previewImage.getAttribute('src');
+        });
+      }
+    }
     pet.toggleAttribute('data-enlarged', petSize > 100);
     pet.toggleAttribute('data-large', petSize > 150);
     smaller.disabled = petSize === sizes[0];
@@ -116,9 +140,22 @@
     if (open) {
       // Keep repeated +/- clicks under the pointer as the character changes size.
       const box = panel.getBoundingClientRect();
-      panel.style.setProperty('--ks-appearance-x', box.left + 'px');
-      panel.style.setProperty('--ks-appearance-y', box.top + 'px');
-      panel.style.setProperty('--ks-appearance-height', panel.scrollHeight + 2 + 'px');
+      const face = button.getBoundingClientRect();
+      const gap = 8, inset = 6;
+      const above = face.top - gap - inset, below = innerHeight - face.bottom - gap - inset;
+      const left = face.left - gap - inset, right = innerWidth - face.right - gap - inset;
+      let height = Math.min(panel.scrollHeight + panel.offsetHeight - panel.clientHeight, innerHeight - 2 * inset);
+      let x = box.left, y;
+      if (Math.max(above, below) < height && Math.max(left, right) >= box.width) {
+        x = left >= right ? face.left - gap - box.width : face.right + gap;
+        y = face.bottom - height;
+      } else {
+        height = Math.min(height, Math.max(above, below));
+        y = above >= below ? face.top - gap - height : face.bottom + gap;
+      }
+      panel.style.setProperty('--ks-appearance-x', x + 'px');
+      panel.style.setProperty('--ks-appearance-y', y + 'px');
+      panel.style.setProperty('--ks-appearance-height', height + 'px');
       panel.dataset.pinned = 'true';
     }
   }
@@ -131,6 +168,7 @@
     customize.focus();
   }
   find('back').addEventListener('click', backToMenu);
+  outfits.addEventListener('change', event => petAppearance.setOutfit(event.target.value));
   for (const [control, direction] of [[smaller, -1], [larger, 1]]) {
     control.addEventListener('click', () => {
       const { sizes, size } = petAppearance;
@@ -248,9 +286,10 @@
       event.preventDefault();
       if (appearance.hidden) setPanel(false);
       else backToMenu();
-    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+    } else if (event.key === 'Home' || event.key === 'End' ||
+               (['ArrowDown', 'ArrowUp'].includes(event.key) && !outfits.contains(event.target))) {
       event.preventDefault();
-      const options = Array.from((appearance.hidden ? find('menu') : appearance).querySelectorAll('button:enabled'));
+      const options = Array.from((appearance.hidden ? find('menu') : appearance).querySelectorAll('button:enabled, input:checked'));
       let next = options.indexOf(document.activeElement) + (event.key === 'ArrowUp' ? -1 : 1);
       if (event.key === 'Home') next = 0;
       if (event.key === 'End') next = options.length - 1;
