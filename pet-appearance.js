@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const sizes = [75, 100, 125, 150];
+  const sizes = [75, 100, 125, 150, 175, 200, 225, 250, 275, 300];
   const sizeKey = 'kanshan.pet.size', mirrorKey = 'kanshan.pet.mirrored';
   let size = 100, mirrored = false;
 

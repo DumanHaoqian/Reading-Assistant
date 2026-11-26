@@ -102,7 +102,7 @@ body.home-page {background:#f5f6f9;color:var(--dark)}
   width: max(44px, calc(var(--home-pet-base, 3.45rem) * var(--ks-pet-scale)));
   height: max(44px, calc(var(--home-pet-base, 3.45rem) * var(--ks-pet-scale)));
 }
-.home-pet.customized img { width: calc(2rem * var(--ks-pet-scale)); height: auto; }
+.home-pet.customized img { width: calc(1.65rem * var(--ks-pet-scale)); height: auto; }
 [data-ks-pet-mirrored] .home-pet img { transform: scaleX(-1); }
 @media (max-width:560px) {
   .home-pet.customized { --home-pet-base: 2.8rem; }

@@ -100,6 +100,7 @@
   function renderAppearance() {
     const { size: petSize, mirrored, sizes } = petAppearance;
     pet.toggleAttribute('data-enlarged', petSize > 100);
+    pet.toggleAttribute('data-large', petSize > 150);
     smaller.disabled = petSize === sizes[0];
     larger.disabled = petSize === sizes[sizes.length - 1];
     appearance.querySelector('output').textContent = petSize + '%';

@@ -50,16 +50,20 @@ test('appearance preferences apply to both pets and mirrored eyes still look tow
     const larger = panel.getByRole('button', { name: '放大刘看山' });
     const smaller = panel.getByRole('button', { name: '缩小刘看山' });
     const initial = await pet.boundingBox();
+    const source = page.locator('#open-reader');
+    const sourceWidth = (await source.boundingBox()).width;
     await pet.click();
     await panel.getByRole('button', { name: '设置刘看山' }).click();
     await smaller.click();
     assert.equal(await size.innerText(), '75%');
     assert.ok(await smaller.isDisabled());
     assert.equal((await pet.boundingBox()).width, initial.width * .75);
-    for (let i = 0; i < 3; i++) await larger.click();
-    assert.equal(await size.innerText(), '150%');
+    for (let percent = 100; percent <= 300; percent += 25) {
+      await larger.click();
+      assert.equal(await size.innerText(), percent + '%');
+      assert.equal((await pet.boundingBox()).width, initial.width * percent / 100);
+    }
     assert.ok(await larger.isDisabled());
-    assert.equal((await pet.boundingBox()).width, initial.width * 1.5);
     await panel.getByRole('button', { name: '左右镜像' }).click();
     await page.keyboard.press('Escape');
     assert.ok(await panel.getByRole('button', { name: '设置刘看山' }).evaluate(el => el === document.activeElement));
@@ -84,16 +88,17 @@ test('appearance preferences apply to both pets and mirrored eyes still look tow
     await expectInsideViewport(page, panel);
     await page.locator('.ks-exit').click();
     await page.reload();
-    const source = page.locator('#open-reader');
-    assert.equal((await source.boundingBox()).width, 144);
+    assert.equal((await source.boundingBox()).width, sourceWidth * 3);
     assert.ok(await source.evaluate(el => getComputedStyle(el.querySelector('.ks-pet-sprite')).transform.startsWith('matrix(-1,')));
     await source.click();
     await pet.click();
     await panel.getByRole('button', { name: '设置刘看山' }).click();
-    assert.equal(await size.innerText(), '150%');
+    assert.equal(await size.innerText(), '300%');
     assert.equal(await panel.getByRole('button', { name: '左右镜像' }).getAttribute('aria-pressed'), 'true');
-    await smaller.click();
-    await smaller.click();
+    for (let percent = 275; percent >= 100; percent -= 25) {
+      await smaller.click();
+      assert.equal(await size.innerText(), percent + '%');
+    }
     await panel.getByRole('button', { name: '左右镜像' }).click();
     assert.equal((await pet.boundingBox()).width, initial.width);
     assert.equal(await pet.locator('.ks-pet-sprite').evaluate(el => getComputedStyle(el).transform), 'none');
@@ -101,7 +106,7 @@ test('appearance preferences apply to both pets and mirrored eyes still look tow
 });
 
 test('changing the docked pet size preserves the passage and all controls on a narrow phone', async () => {
-  const context = await browser.newContext({ viewport: { width: 320, height: 700 }, reducedMotion: 'reduce' });
+  const context = await browser.newContext({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
   try {
     const page = await context.newPage();
     await openBook(page);
@@ -109,25 +114,76 @@ test('changing the docked pet size preserves the passage and all controls on a n
     await page.locator('.ks-follow').click();
     const content = page.locator('.ks-leaf .ks-body').first();
     const counter = page.locator('.ks-counter');
-    const initial = { text: await content.textContent(), pages: await counter.textContent() };
-    await page.locator('.ks-pet-button').click();
+    const pet = page.locator('.ks-pet-button');
+    const initial = { text: await content.textContent(), pages: await counter.textContent(), width: (await pet.boundingBox()).width };
+    const selectedText = () => page.evaluate(() => [...CSS.highlights.get('ks-follow-sentence')].map(range => range.toString()).join(''));
+    const following = await selectedText();
+    assert.ok(following.trim());
+    await pet.click();
     await page.locator('.ks-pet-customize').click();
-    await page.locator('.ks-pet-larger').dblclick();
+    const larger = page.locator('.ks-pet-larger');
+    await larger.dblclick();
     assert.equal(await page.locator('.ks-pet-appearance output').innerText(), '150%');
+    assert.equal(await content.textContent(), initial.text);
+    assert.equal(await counter.textContent(), initial.pages);
+    for (let percent = 175; percent <= 300; percent += 25) await larger.click();
+    assert.ok(await larger.isDisabled());
+    assert.equal((await pet.boundingBox()).width, initial.width * 3);
+    const preview = page.locator('.ks-pet-look img');
+    const cropped = await preview.evaluate(img => {
+      const box = img.getBoundingClientRect(), stage = img.closest('.ks-pet-look').getBoundingClientRect();
+      return box.top < stage.top - 1 || box.bottom > stage.bottom + 1 ||
+        box.left < stage.left - 1 || box.right > stage.right + 1;
+    });
+    assert.equal(cropped, false, 'the preview fits its frame at 300%');
     await page.locator('.ks-pet-back').click();
     await page.locator('.ks-pet-preview').click();
     await expectOutsideText(page, '.ks-pet-button');
     await expectOutsideText(page, '.ks-pet-bubble');
-    assert.equal(await content.textContent(), initial.text);
-    assert.equal(await counter.textContent(), initial.pages);
+    const visible = await selectedText();
+    assert.ok(visible.trim() && (following.includes(visible) || visible.includes(following)),
+      'the followed sentence is still visible after the book repaginates');
     for (const selector of ['.ks-progress-slider', '.ks-sentence-next', '.ks-larger']) {
-      const hit = await page.locator(selector).evaluate(node => {
+      const control = page.locator(selector);
+      await expectInsideViewport(page, control);
+      const hit = await control.evaluate(node => {
         const rect = node.getBoundingClientRect();
         return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
       });
       assert.ok(hit, selector + ' remains reachable with a large pet and visible reminder');
     }
   } finally { await context.close(); }
+});
+
+test('a 300% pet leaves both turn buttons and multiple lines of text visible in landscape', async () => {
+  const page = await browser.newPage({ viewport: { width: 740, height: 400 }, reducedMotion: 'reduce' });
+  try {
+    await page.addInitScript(() => localStorage.setItem('kanshan.pet.size', '300'));
+    await openBook(page);
+    const counter = page.locator('.ks-counter');
+    const start = await counter.innerText();
+    const pet = page.locator('.ks-pet-button');
+    assert.ok((await pet.boundingBox()).width > 200);
+    await page.getByRole('button', { name: '往后翻页' }).click({ timeout: 2500 });
+    assert.notEqual(await counter.innerText(), start);
+    const visibleLines = await page.locator('.ks-leaf .ks-body').first().evaluate(body => {
+      const box = body.getBoundingClientRect();
+      const text = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+      const rows = new Set();
+      while (text.nextNode()) {
+        if (!text.currentNode.textContent.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(text.currentNode);
+        for (const rect of range.getClientRects()) {
+          if (rect.top >= box.top && rect.bottom <= box.bottom) rows.add(Math.round(rect.top));
+        }
+      }
+      return rows.size;
+    });
+    assert.ok(visibleLines >= 3, 'at least three complete text lines remain visible');
+    await page.getByRole('button', { name: '往前翻页' }).click({ timeout: 2500 });
+    assert.equal(await counter.innerText(), start);
+  } finally { await page.close(); }
 });
 
 test('appearance changes update the actual artwork, menu preview and already-open article tabs', async () => {
@@ -146,15 +202,15 @@ test('appearance changes update the actual artwork, menu preview and already-ope
     const original = await preview.boundingBox();
     const artwork = other.locator('.ks-pet-button .ks-fox');
     const otherWidth = (await artwork.boundingBox()).width;
-    await page.locator('.ks-pet-larger').click();
+    for (let percent = 125; percent <= 300; percent += 25) await page.locator('.ks-pet-larger').click();
     await page.locator('.ks-pet-mirror').click();
-    assert.equal((await preview.boundingBox()).width, original.width * 1.25);
+    assert.equal((await preview.boundingBox()).width, original.width * 3);
     assert.ok(await preview.evaluate(el => getComputedStyle(el).transform.startsWith('matrix(-1,')));
     assert.equal(await preview.evaluate(el => el.parentElement.getAnimations().length), 0);
     await other.waitForFunction(width => {
       const svg = document.querySelector('.ks-pet-button .ks-fox');
       return svg.getBoundingClientRect().width === width && svg.getScreenCTM().a < 0;
-    }, otherWidth * 1.25);
+    }, otherWidth * 3);
     if (entry.protocol !== 'file:') {
       // file: storage sharing between different HTML files is browser dependent.
       await feed.waitForFunction(() => {
@@ -165,7 +221,7 @@ test('appearance changes update the actual artwork, menu preview and already-ope
     }
     await other.locator('.ks-pet-button').click();
     await other.locator('.ks-pet-customize').click();
-    await other.locator('.ks-pet-smaller').click();
+    for (let percent = 275; percent >= 100; percent -= 25) await other.locator('.ks-pet-smaller').click();
     await other.locator('.ks-pet-mirror').click();
     await page.waitForFunction(() => document.querySelector('.ks-pet-appearance output').textContent === '100%' &&
       document.querySelector('.ks-pet-mirror').getAttribute('aria-pressed') === 'false');
